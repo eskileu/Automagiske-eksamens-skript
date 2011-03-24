@@ -21,8 +21,9 @@
 # 7. Finne ut om vi kan mate inn verdier i konfigdialoger under installasjon.
 ##
 
+TEMP=$1 # Forbanna $1 funket dårlig direkte i if setningen....
 # Kommenter ut når rev er testet. 
-if [ "$1" != "test" ]; then
+if [ "$TEMP" != "test" ]; then
 	echo "Det jobbes med scriptet for øyeblikket vennligst prøv igjen senere"
 	exit
 fi
@@ -34,6 +35,15 @@ if (( $UID != 0 )); then
 fi
 
 # Vi er avhengig av nett til installasjonene så vi gjør en pingtest
+if ping -c 1 158.38.48.10 > /dev/null; then
+	echo "PING: OK"
+else
+	REDTEMP=$(tput setaf 1)
+	echo "PING: ${REDTEMP}FAILED"
+	echo "Avsluttet siden vi ikke har nett"
+	exit
+fi
+
 
 
 # Variablelkassen. Kom med innspill her på hvilke verdier som vi trenger.
@@ -50,7 +60,7 @@ HOSTIP=""   # Denne MÅ vi ha
 # Rydde funksjon. Kun et skjelett må fylles
 function cleanUp()
 {
-
+  echo "RYDDER OPP ETTER DEG!!"
 }
 
 # Funksjon for kontroll av input. Må endres slik at den 
