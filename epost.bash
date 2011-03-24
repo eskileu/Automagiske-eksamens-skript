@@ -21,56 +21,10 @@
 # 7. Finne ut om vi kan mate inn verdier i konfigdialoger under installasjon.
 ##
 
-TEMP=$1 # Forbanna $1 funket dårlig direkte i if setningen....
-# Kommenter ut når rev er testet. 
-if [ "$TEMP" != "test" ]; then
-	echo "Det jobbes med scriptet for øyeblikket vennligst prøv igjen senere"
-	exit
-fi
-
-# Sikre at kun root kan kjøre skriptet.
-if (( $UID != 0 )); then
-	echo "*!* FATAL: Can only be executed by root."
-	exit
-fi
-
-# Vi er avhengig av nett til installasjonene så vi gjør en pingtest
-if ping -c 1 158.38.48.10 > /dev/null; then
-	echo "PING: OK"
-else
-	REDTEMP=$(tput setaf 1)
-	RESETTEMP=$(tput sgr0)
-	echo "PING: ${REDTEMP}FAILED${RESETTEMP}"
-	echo "Skript avsluttet siden vi ikke har nett"
-	exit
-fi
-
-# Verifiser at brukeren virkelig vil gå videre
-pause "Om du er sikker trykk [ENTER] eller avbryt med CTRL+C"
-
-##
-# Variablelkassen. Kom med innspill her på hvilke verdier som vi trenger.
-##
-
-# Konfig variabler
-HOSTNAVN="" # Denne MÅ vi ha
-DOMENE=""   # Denne MÅ vi ha
-HOSTIP=""   # Denne MÅ vi ha
-
-SPORSMAL="Hva er hostnavnet du skal benytte: "
-getInput 1
-if [ -z $INPUT_LOWER_CASE ]; then
-	HOSTNAVN=`hostname`
-else
-	HOSTNAVN=$INPUT_LOWER_CASE
-fi
-
-
-
-
 
 #################################################
-# UNDER DETTE SKILLET SKAL KUN FUNKSJONER LIGGE #
+# UNDER DETTE SKILLET SKAL KUN FUNKSJONER LIGGE 
+# FUNKSJONER MÅ VIST LESES FØRST...             
 #################################################
 
 # Rydde funksjon. Kun et skjelett må fylles
@@ -82,7 +36,7 @@ function cleanUp()
 
 # Pause funksjon som krever [ENTER] for å fortsette
 function pause(){
-	read -p “$*”
+	read -p "$*"
 }
 
 # Funksjon for kontroll av input. Må endres slik at den 
@@ -137,6 +91,55 @@ function getInput()
 		fi
 	done
 }
+
+#####################################################
+# UNDER DETTE SKILLET SKAL DEN UTFØRENDE KODEN LIGGE
+#####################################################
+
+TEMP=$1 # Forbanna $1 funket dårlig direkte i if setningen....
+# Kommenter ut når rev er testet. 
+if [ "$TEMP" != "test" ]; then
+	echo "Det jobbes med scriptet for øyeblikket vennligst prøv igjen senere"
+	exit
+fi
+
+# Sikre at kun root kan kjøre skriptet.
+if (( $UID != 0 )); then
+	echo "*!* FATAL: Can only be executed by root."
+	exit
+fi
+
+# Vi er avhengig av nett til installasjonene så vi gjør en pingtest
+if ping -c 1 158.38.48.10 > /dev/null; then
+	echo "PING: OK"
+else
+	REDTEMP=$(tput setaf 1)
+	RESETTEMP=$(tput sgr0)
+	echo "PING: ${REDTEMP}FAILED${RESETTEMP}"
+	echo "Skript avsluttet siden vi ikke har nett"
+	exit
+fi
+
+# Verifiser at brukeren virkelig vil gå videre
+pause "Om du er sikker trykk ENTER eller avbryt med CTRL+C"
+
+##
+# Variablelkassen. Kom med innspill her på hvilke verdier som vi trenger.
+##
+
+# Konfig variabler
+HOSTNAVN="" # Denne MÅ vi ha
+DOMENE=""   # Denne MÅ vi ha
+HOSTIP=""   # Denne MÅ vi ha
+
+SPORSMAL="Hva er hostnavnet du skal benytte: "
+getInput 1
+if [ -z $INPUT_LOWER_CASE ]; then
+	HOSTNAVN=`hostname`
+else
+	HOSTNAVN=$INPUT_LOWER_CASE
+fi
+echo $HOSTNAVN
 
 
 
