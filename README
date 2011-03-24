@@ -1,2 +1,2 @@
 Skriptpakke som hjelper til med installasjon og konfigurasjon av typiske tjenester vi ønsker på en debianbox.
-Alle skript brukes på eget ansvar.
+Alle skript brukes på eget ansvar. Sparer ikke så mye tid på selve installasjonene, men konfigurasjonen vil gå mye fortere med ved hjelp av skript.
