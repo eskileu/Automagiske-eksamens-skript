@@ -131,15 +131,38 @@ pause "Om du er sikker trykk ENTER eller avbryt med CTRL+C"
 HOSTNAVN="" # Denne MÅ vi ha
 DOMENE=""   # Denne MÅ vi ha
 HOSTIP=""   # Denne MÅ vi ha
+EKSTERNT_INTERFACE="" # Om noen skulle bruke noe annet en eth0
 
-SPORSMAL="Hva er hostnavnet du skal benytte: "
+SPORSMAL="Hvilken hostname har serveren: "
 getInput 1
 if [ -z $INPUT_LOWER_CASE ]; then
 	HOSTNAVN=`hostname`
 else
 	HOSTNAVN=$INPUT_LOWER_CASE
 fi
-echo $HOSTNAVN
 
+SPORSMAL="Hvilket domene skal serveren benytte: "
+getInput 1
+if [ -z $INPUT_LOWER_CASE ]; then
+	DOMENE=`hostname -d`
+else
+	DOMENE=$INPUT_LOWER_CASE
+fi
+
+SPORSMAL="Hvilket interface er det eksterne: "
+getInput 1
+if [ -z $INPUT_LOWER_CASE ]; then
+	EKSTERNT_INTERFACE="eth0"
+else
+	EKSTERNT_INTERFACE=$INPUT_LOWER_CASE
+fi
+
+SPORSMAL="Skriv inn serveren sin eksterne IP adresse:"
+getInput 1
+if [ -z $INPUT_LOWER_CASE ]; then
+	HOSTIP=`ifconfig $EKSTERNT_INTERFACE | grep 'inet addr:' | cut -d: -f2 | awk '{ print $1}'`
+else
+	HOSTIP=$INPUT_LOWER_CASE
+fi
 
 
