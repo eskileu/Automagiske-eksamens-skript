@@ -39,17 +39,33 @@ if ping -c 1 158.38.48.10 > /dev/null; then
 	echo "PING: OK"
 else
 	REDTEMP=$(tput setaf 1)
-	echo "PING: ${REDTEMP}FAILED"
-	echo "Avsluttet siden vi ikke har nett"
+	RESETTEMP=$(tput sgr0)
+	echo "PING: ${REDTEMP}FAILED${RESETTEMP}"
+	echo "Skript avsluttet siden vi ikke har nett"
 	exit
 fi
 
+# Verifiser at brukeren virkelig vil gå videre
+pause "Om du er sikker trykk [ENTER] eller avbryt med CTRL+C"
 
-
+##
 # Variablelkassen. Kom med innspill her på hvilke verdier som vi trenger.
+##
+
+# Konfig variabler
 HOSTNAVN="" # Denne MÅ vi ha
 DOMENE=""   # Denne MÅ vi ha
 HOSTIP=""   # Denne MÅ vi ha
+
+SPORSMAL="Hva er hostnavnet du skal benytte: "
+getInput 1
+if [ -z $INPUT_LOWER_CASE ]; then
+	HOSTNAVN=`hostname`
+else
+	HOSTNAVN=$INPUT_LOWER_CASE
+fi
+
+
 
 
 
@@ -60,7 +76,13 @@ HOSTIP=""   # Denne MÅ vi ha
 # Rydde funksjon. Kun et skjelett må fylles
 function cleanUp()
 {
-  echo "RYDDER OPP ETTER DEG!!"
+	echo "RYDDER OPP ETTER DEG!!"
+	# LEGG INN KODE
+}
+
+# Pause funksjon som krever [ENTER] for å fortsette
+function pause(){
+	read -p “$*”
 }
 
 # Funksjon for kontroll av input. Må endres slik at den 
@@ -78,7 +100,7 @@ function getInput()
 	loop=0
 	while (($loop != 1)); do
 
-		echo -n "< $QUESTION"
+		echo -n "< $SPORSMAL"
 		INPUT=""
 		read INPUT
 
