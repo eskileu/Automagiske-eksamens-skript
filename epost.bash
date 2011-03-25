@@ -166,3 +166,22 @@ else
 fi
 
 
+
+# Start av innstallasjon av postfix og Courier.
+echo " "
+echo "STARTER INSTALLASJON AV POSTFIX"
+echo " "
+apt-get update
+apt-get -qy install postfix courier-authdaemon courier-pop-ssl  courier-imap-ssl sasl2-bin procmail libsasl2-modules
+
+touch /etc/postfix/sasl/smtpd.conf
+echo 'pwcheck_method: saslauthd' >> /etc/postfix/sasl/smtpd.conf
+echo 'mech_list: plain login' >> /etc/postfix/sasl/smtpd.conf
+
+
+
+
+
+
+
+
