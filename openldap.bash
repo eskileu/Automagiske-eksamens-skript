@@ -3,12 +3,14 @@
 #
 # Openldap script
 #
-## Rev. 0.1 (1.0 er det samme som fult operativ)
+## Rev. 0.15 (1.0 er det samme som fult operativ)
 # -------------
 # 0.1 Skjelettet opprettet. Ingen ting lagt til ennå. 
 # Lagt til sjekk om det er nett på maskinen. Ingen grunn til å kjøre i gang
 # installasjoner uten nett.
 # Må få oversikt over nødvendige variabler til konfigurasjonen.
+# 0.15 Lagt til de første elementene i innstallasjonen og lagt til alle 
+# linjene i guiden (kommentert ut) slik at de kommer i riktig rekkefølge
 # -------------
 # Last edit: Fri 25 Mar 2011
 #
@@ -84,9 +86,10 @@ function getInput()
 	done
 }
 
-##################################################
+#####################################################
 # UNDER DETTE SKILLET KJØRER VI NOEN ENKLE TESTER
-##################################################
+# FOR Å SJEKKE AT VI KAN GÅ VIDERE I KONFIGURASJONEN
+#####################################################
 
 TEMP=$1 # Forbanna $1 funket dårlig direkte i if setningen....
 # Kommenter ut når rev er testet. 
@@ -102,7 +105,7 @@ if (( $UID != 0 )); then
 fi
 
 # Vi er avhengig av nett til installasjonene så vi gjør en pingtest
-if ping -c 1 158.38.48.10 > /dev/null; then
+if ping -c 1 192.168.0.1 > /dev/null; then
 	echo "PING: OK"
 else
 	REDTEMP=$(tput setaf 1)
@@ -114,3 +117,161 @@ fi
 
 # Verifiser at brukeren virkelig vil gå videre
 pause "Om du er sikker trykk ENTER eller avbryt med CTRL+C"
+
+#######################
+# HERE'S THE ACTION :)
+#######################
+
+apt-get install slapd ldap-utils
+dpkg-reconfigure slapd
+
+# Konfigurerer /etc/ldap/ldap.conf
+
+rm /etc/ldap/ldap.conf
+touch /etc/ldap/ldap.conf
+chmod 644 /etc/ldap/ldap.conf
+
+SPORSMAL="Skriv inn fullstendig dc:"
+getInput 1
+if [ -z $INPUT_LOWER_CASE ]; then
+	DC='dc=atlas,dc=localdomain'
+else
+	DC=$INPUT_LOWER_CASE
+fi
+DC1='BASE   '$DC
+echo $DC1
+echo $DC1 >> /etc/ldap/ldap.conf
+
+
+SPORSMAL="Skriv inn ip-adresse:"
+getInput 1
+if [ -z $INPUT_LOWER_CASE ]; then
+	IP=`/sbin/ifconfig eth0 | grep 'inet addr:' | cut -d: -f2 | awk '{ print $1 }'`
+else
+	IP=$INPUT_LOWER_CASE
+fi
+IP1='URI   '$IP
+echo $IP1
+echo $IP1 >> /etc/ldap/ldap.conf
+
+# KJØRER EN SJEKK AT /etc/ldap/slapd.conf INNEHOLDER
+# NOEN SCHEMA'ER SOM VI ER AVHENGIG AV
+
+CORE=core.schema
+COSINE=cosine.schema
+NIS=nis.schema
+INET=inetorgperson.schema
+
+VARIABEL=`grep -e $CORE -e $COSINE -e $NIS -e $INET /etc/ldap/slapd.conf | wc -l`
+
+if (($VARIABEL == 4)); then
+        sed -i '/loglevel        none/ c\loglevel	256' /etc/ldap/slapd.conf
+	sed -i '86 a\index	uid          eq' /etc/ldap/slapd.conf
+else
+        echo "dust"
+fi
+
+
+# REINDEKSERER 
+
+/etc/init.d/slapd stop
+slapindex
+chown -R openldap:openldap /var/lib/ldap
+/etc/init.d/slapd start
+
+# teste at ldap er oppe å kjører riktig
+ldapsearch -x
+
+
+# opprette, 
+# sudo nano ou.ldif
+touch /tmp/ou.ldif
+echo $DC
+echo "
+dn: ou=People,$DC
+ou: People
+objectClass: organizationalUnit
+
+dn: ou=Group,$DC
+ou: Group
+objectClass: organizationalUnit" >> /tmp/ou.ldif
+
+/etc/init.d/slapd stop
+slapadd -c -v -l /tmp/ou.ldif
+/etc/init.d/slapd start
+
+ldapsearch -x ou=people
+
+# sudo nano <brukernavn>.ldif
+touch /tmp/goofy.ldif
+echo $DC
+echo "
+dn: cn=goofy,ou=group,$DC
+cn: goofy
+gidNumber: 20000
+objectClass: top
+objectClass: posixGroup
+
+dn: uid=goofy,ou=people,$DC
+uid: goofy
+uidNumber: 20000
+gidNumber: 20000
+cn: goofy
+sn: goofy
+objectClass: top
+objectClass: person
+objectClass: posixAccount
+objectClass: shadowAccount
+loginShell: /bin/false
+homeDirectory: /home/goofy" >> /tmp/goofy.ldif
+
+ldapadd -c -x -D cn=admin,$DC -W -f /tmp/goofy.ldif
+
+ldapsearch -x uid=goofy
+
+#
+# NSS og PAM
+#
+
+apt-get install libnss-ldap
+
+dpkg-reconfigure libnss-ldap
+
+# sudo nano /etc/nsswitch.conf
+
+# passwd:         files ldap
+# group:          files ldap
+# shadow:         files ldap
+
+# sudo invoke-rc.d nscd stop
+
+# sudo dpkg-reconfigure libpam-ldap
+
+# ldap://<ip-adresse>/
+# dc=ditt,dc=domene,dc=com
+# 3
+# no
+# no 
+# crypt
+
+# sudo nano /etc/pam.d/common-account
+
+# account sufficient      pam_ldap.so
+# account required        pam_unix.so try_first_pass
+# session required        pam_mkhomedir.so skel=/etc/skel/ umask=0022
+
+# sudo nano /etc/pam.d/common-auth
+
+# auth    sufficient      pam_ldap.so
+# auth    required        pam_unix.so nullok_secure try_first_pass
+
+# sudo nano /etc/pam.d/common-password
+
+# password   sufficient pam_ldap.so
+# password   required   pam_unix.so nullok obscure
+
+# sudo nano /etc/pam.d/common-session
+
+# session sufficient      pam_ldap.so
+#session required        pam_unix.so try_first_pass
+
