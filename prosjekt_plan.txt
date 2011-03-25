@@ -1,0 +1,49 @@
+Dokumentet skal beskrive hva som gjøres ved hver innstallasjon som krever input, og skal fungere som en plan for rekkefølge vi ser for oss i innstallasjonen.
+
+Server konfigurasjon:
+
+- sudo
+
+- openssh-server
+
+- openssl
+
+- openldap
+	- useradd script
+	- default gruppe og bruker ou
+
+- dns
+
+- dhcp3
+
+- mysql
+	- må sette root-passord under innstallasjonen
+
+- apache2
+	- hva trenger vi av konfigurasjon her?
+		- keepalive = off
+		- https/ssl?
+
+- php5
+	- restart apache2
+
+
+- phpmyadmin
+
+- phpldapadmin ?
+
+- email
+
+- wordpress
+
+- samba
+
+- skel
+	- sette en default skeleton for brukeren
+		- public_html
+		- mail_dir
+		- procmail
+		- .spamassasin
+		- 
+
+
