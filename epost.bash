@@ -264,7 +264,7 @@ apt-get install -qy lha unrar
 apt-get install -qy clamav-testfiles
 clamscan /usr/share/clamav-testfiles
 clamdscan /usr/share/clamav-testfiles/
-apt-get remove clamav-testfiles
+apt-get remove -qy clamav-testfiles
 
 #################
 # SPAMASSASSIN  #
