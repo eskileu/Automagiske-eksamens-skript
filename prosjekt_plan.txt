@@ -41,9 +41,8 @@ Anbefalt innstallasjonsrekkefølge:
 - skel
 	- sette en default skeleton for brukeren
 		- public_html
-		- mail_dir
-		- procmail
-		- .spamassasin
-		- 
+		- Maildir (lages med maildirmake) Bruk opsjon f for å lage under mapper. 
+		- .procmail (mappe) inne i mappen trenger vi ei fil med navnet log
+		- .promailrc (fil)
 
 
