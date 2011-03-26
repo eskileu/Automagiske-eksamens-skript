@@ -387,7 +387,11 @@ $MAILFOLDER/.spam/
 # Resten til spam-mappe
 :0:
 * ^X-Spam-Status:.Yes,.*
-$MAILFOLDER/.spam/' > /etc/skel/.procmailrc
+$MAILFOLDER/.spam/
+
+# Ufiltrert epost til Inbox
+:0
+$MAILFOLDER/' > /etc/skel/.procmailrc
 
 mkdir -m 700 /etc/skel/.spamassassin
 
