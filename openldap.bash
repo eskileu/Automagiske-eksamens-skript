@@ -3,7 +3,7 @@
 #
 # Openldap script
 #
-## Rev. 0.15 (1.0 er det samme som fult operativ)
+## Rev. 0.2 (1.0 er det samme som fult operativ)
 # -------------
 # 0.1 Skjelettet opprettet. Ingen ting lagt til ennå. 
 # Lagt til sjekk om det er nett på maskinen. Ingen grunn til å kjøre i gang
@@ -11,11 +11,18 @@
 # Må få oversikt over nødvendige variabler til konfigurasjonen.
 # 0.15 Lagt til de første elementene i innstallasjonen og lagt til alle 
 # linjene i guiden (kommentert ut) slik at de kommer i riktig rekkefølge
+# 0.2 Første beta versjon av fullstendig script
 # -------------
-# Last edit: Fri 25 Mar 2011
+# Last edit: Sat 26 Mar 2011
 #
 # TODO:
-# 1. 
+# 1. Sjekke for faktiske feil
+# 2. Rette opp hardlinking og ordne softlinks
+# 3. Legge til funksjoner for opprydding cleanUp()
+# 3.1 Fjerne temp filer
+# 3.2 Fjerne testbruker
+# 4. Legge til postconf informasjon 
+# 5. Sjekke testrutiner som er kommentert ut
 ##
 
 ###############
@@ -122,7 +129,7 @@ pause "Om du er sikker trykk ENTER eller avbryt med CTRL+C"
 # HERE'S THE ACTION :)
 #######################
 
-apt-get install slapd ldap-utils
+apt-get install -q -y slapd ldap-utils
 dpkg-reconfigure slapd
 
 # Konfigurerer /etc/ldap/ldap.conf
@@ -139,7 +146,6 @@ else
 	DC=$INPUT_LOWER_CASE
 fi
 DC1='BASE   '$DC
-echo $DC1
 echo $DC1 >> /etc/ldap/ldap.conf
 
 
@@ -151,11 +157,12 @@ else
 	IP=$INPUT_LOWER_CASE
 fi
 IP1='URI   '$IP
-echo $IP1
 echo $IP1 >> /etc/ldap/ldap.conf
 
+#########################################################
 # KJØRER EN SJEKK AT /etc/ldap/slapd.conf INNEHOLDER
-# NOEN SCHEMA'ER SOM VI ER AVHENGIG AV
+# NOEN SCHEMA'ER SOM VI ER AVHENGIG AV FØR VI GÅR VIDERE
+#########################################################
 
 CORE=core.schema
 COSINE=cosine.schema
@@ -180,11 +187,16 @@ chown -R openldap:openldap /var/lib/ldap
 /etc/init.d/slapd start
 
 # teste at ldap er oppe å kjører riktig
-ldapsearch -x
+#OPPE=`ldapsearch -x | grep cn=admin`
+#if [ -z $OPPE ] ; then
+#	echo "Her var det en feil i reindekseringen"	
+#	exit
+#fi
 
+###########################################
+# Lager 2 ou'er: People og Group i ou.ldif
+###########################################
 
-# opprette, 
-# sudo nano ou.ldif
 touch /tmp/ou.ldif
 echo $DC
 echo "
@@ -200,9 +212,14 @@ objectClass: organizationalUnit" >> /tmp/ou.ldif
 slapadd -c -v -l /tmp/ou.ldif
 /etc/init.d/slapd start
 
-ldapsearch -x ou=people
+#OPPE=`ldapsearch -x ou=people | grep 'numEntries:' | awk '{ print $3 }'`
+#if [ $OPPE < 1 ] ; then
+#	echo "Her har vi en feil at ou'er ikke ble lagt inn"
+#	exit
+#fi
 
-# sudo nano <brukernavn>.ldif
+# Lager en testbruker (goofy) for at vi skal se at alt er i orden 
+
 touch /tmp/goofy.ldif
 echo $DC
 echo "
@@ -227,51 +244,55 @@ homeDirectory: /home/goofy" >> /tmp/goofy.ldif
 
 ldapadd -c -x -D cn=admin,$DC -W -f /tmp/goofy.ldif
 
-ldapsearch -x uid=goofy
+#OPPE=`ldapsearch -x uid=goofy | grep 'numEntries:' | awk '{ print $3 }'`
+#if [ $OPPE < 1 ] ; then
+#	echo "Feil, testbrukeren crasha"
+#	exit
+#fi
 
-#
+###############
 # NSS og PAM
-#
+###############
 
-apt-get install libnss-ldap
+apt-get install -q -y libnss-ldap
 
 dpkg-reconfigure libnss-ldap
 
-# sudo nano /etc/nsswitch.conf
+# Konfigurerer/etc/nsswitch.conf
 
-# passwd:         files ldap
-# group:          files ldap
-# shadow:         files ldap
+sed 's|compat|files ldap|g' /etc/nsswitch.conf
 
-# sudo invoke-rc.d nscd stop
+/etc/init.d/nscd stop
 
-# sudo dpkg-reconfigure libpam-ldap
+dpkg-reconfigure libpam-ldap
 
-# ldap://<ip-adresse>/
-# dc=ditt,dc=domene,dc=com
-# 3
-# no
-# no 
-# crypt
 
-# sudo nano /etc/pam.d/common-account
+# Konfigurere /etc/pam.d/common-account
 
-# account sufficient      pam_ldap.so
-# account required        pam_unix.so try_first_pass
-# session required        pam_mkhomedir.so skel=/etc/skel/ umask=0022
+sed -i '/pam_unix.so/d' /etc/pam.d/common-account
+echo "
+account sufficient      pam_ldap.so
+account required        pam_unix.so try_first_pass
+session required        pam_mkhomedir.so skel=/etc/skel/ umask=0022" >> /etc/pam.d/common-account
 
-# sudo nano /etc/pam.d/common-auth
+# Konfigurere /etc/pam.d/common-auth
 
-# auth    sufficient      pam_ldap.so
-# auth    required        pam_unix.so nullok_secure try_first_pass
+sed -i '/pam_unix.so/d' /etc/pam.d/common-auth
+echo "
+auth    sufficient      pam_ldap.so
+auth    required        pam_unix.so nullok_secure try_first_pass" >> /etc/pam.d/common-auth
 
-# sudo nano /etc/pam.d/common-password
+# Konfigurere /etc/pam.d/common-password
 
-# password   sufficient pam_ldap.so
-# password   required   pam_unix.so nullok obscure
+sed -i '/pam_unix.so/d' /etc/pam.d/common-password
+echo "
+password   sufficient pam_ldap.so
+password   required   pam_unix.so nullok obscure" >> /etc/pam.d/common-password
 
-# sudo nano /etc/pam.d/common-session
+# Konfigurere /etc/pam.d/common-session
 
-# session sufficient      pam_ldap.so
-#session required        pam_unix.so try_first_pass
+sed -i '/pam_unix.so/d' /etc/pam.d/common-session
+echo "
+session sufficient      pam_ldap.so
+session required        pam_unix.so try_first_pass" >> /etc/pam.d/common-session
 
