@@ -342,9 +342,9 @@ use strict;
 
 1;  # ensure a defined return' > /etc/amavis/conf.d/15-content_filter_mode
 
-echo '
+echo -e '
 use strict;
-$sa_spam_subject_tag = '***SPAM*** ';
+$sa_spam_subject_tag = \047***SPAM***\047;
 $sa_tag_level_deflt  = undef;  # add spam info headers if at, or above that level
 $sa_tag2_level_deflt = 7;      # add 'spam detected' headers at that level
 $sa_kill_level_deflt = 30;     # triggers spam evasive actions
