@@ -9,7 +9,7 @@
 # installasjoner uten nett.
 # Må få oversikt over nødvendige variabler til konfigurasjonen.
 # -------------
-# Last edit: Thu 24 Mar 2011
+# 
 #
 # TODO:
 # 1. Skaff en oversikt over alle konfigurasjonsfilene som er nødvendig
@@ -22,10 +22,10 @@
 ##
 
 
-#################################################
-# UNDER DETTE SKILLET SKAL KUN FUNKSJONER LIGGE 
-# FUNKSJONER MÅ VIST LESES FØRST...             
-#################################################
+##################################################
+# UNDER DETTE SKILLET SKAL KUN FUNKSJONER LIGGE  #
+# FUNKSJONER MÅ VIST LESES FØRST...              #
+##################################################
 
 # Rydde funksjon. Kun et skjelett må fylles
 function cleanUp()
@@ -92,9 +92,9 @@ function getInput()
 	done
 }
 
-#####################################################
-# UNDER DETTE SKILLET SKAL DEN UTFØRENDE KODEN LIGGE
-#####################################################
+######################################################
+# UNDER DETTE SKILLET SKAL DEN UTFØRENDE KODEN LIGGE #
+######################################################
 
 TEMP=$1 # Forbanna $1 funket dårlig direkte i if setningen....
 # Kommenter ut når rev er testet. 
@@ -108,13 +108,14 @@ if (( $UID != 0 )); then
 	echo "*!* FATAL: Can only be executed by root."
 	exit
 fi
+REDTEMP=$(tput setaf 1)
+LIGHTCYANTEMP=$(tput bold ; tput setaf 6)
+RESETTEMP=$(tput sgr0)
 
 # Vi er avhengig av nett til installasjonene så vi gjør en pingtest
 if ping -c 1 158.38.48.10 > /dev/null; then
 	echo "PING: OK"
 else
-	REDTEMP=$(tput setaf 1)
-	RESETTEMP=$(tput sgr0)
 	echo "PING: ${REDTEMP}FAILED${RESETTEMP}"
 	echo "Skript avsluttet siden vi ikke har nett"
 	exit
@@ -171,13 +172,14 @@ else
 fi
 
 
-
-# Start av innstallasjon av postfix og Courier.
+###################
+# POSTFIX OG SASL #
+###################
 echo " "
 echo "STARTER INSTALLASJON AV POSTFIX"
 echo " "
 apt-get update
-apt-get -qy install postfix courier-authdaemon courier-pop-ssl  courier-imap-ssl sasl2-bin procmail libsasl2-modules
+apt-get -qy install postfix sasl2-bin procmail libsasl2-modules
 
 postconf -e 'smtpd_sasl_local_domain ='
 postconf -e 'smtpd_sasl_auth_enable = yes'
@@ -233,7 +235,49 @@ sed -i 's|"-c -m /var/run/saslauthd"|"-c -m /var/spool/postfix/var/run/saslauthd
 ### Legg inn varsling om telnet test og en mulighet til å avbryte om noe skulle være feil
 ## tekstsnutt som forklarer telnet bruk og etter test en pause hvor vi git muligheten til å avbryte
 
+echo "
+STEG 1 FERDIG!
+Gjennomfør en telnet test for å sjekke at postfix er tilgjengelig.
+Ta en ${LIGHTCYANTEMP}ehlo localhost${RESETTEMP} i telnet. Se etter AUTH PLAIN
+og TLS.
+"
+telnet localhost 25
+pause "Om alt ser ut til å være korrekt trykk ENTER. Avbryt eventuelt med CTRL+C"
 
+###########
+# COURIER #
+###########
+echo "
+START COURIER INNSTALLASJON OG KONFIGURASJON
+"
+apt-get install -qy courier-authdaemon courier-base courier-imap courier-imap-ssl courier-pop courier-pop-ssl courier-ssl gamin libgamin0 libglib2.0-0
+
+###########
+# CLAMAV  #
+###########
+echo "
+START CLAMAV INNSTALLASJON OG KONFIGURASJON
+"
+apt-get install -qy clamav clamav-docs clamav-daemon clamav-freshclam
+apt-get install -qy arc arj bzip2 cabextract lzop nomarch p7zip pax tnef unrar-free unzip zoo ripole
+echo "deb http://ftp.no.debian.org/debian/ lenny non-free" >> /etc/apt/sources.list
+apt-get install -qy lha unrar
+apt-get install -qy clamav-testfiles
+clamscan /usr/share/clamav-testfiles
+clamdscan /usr/share/clamav-testfiles/
+apt-get remove clamav-testfiles
+
+#################
+# SPAMASSASSIN  #
+#################
+echo "
+START SPAMASSASSIN INNSTALLASJON OG KONFIGURASJON
+"
+apt-get install -qy spamassassin spamc
+apt-get install -qy razor pyzor
+
+sed -i '/ENABLED=0/ c\ENABLED=1' /etc/default/spamassassin
+sed -i '/CRON=0/ c\CRON=1' /etc/default/spamassassin
 
 
 
