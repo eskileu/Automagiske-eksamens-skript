@@ -8,17 +8,15 @@
 # Lagt til sjekk om det er nett på maskinen. Ingen grunn til å kjøre i gang
 # installasjoner uten nett.
 # Må få oversikt over nødvendige variabler til konfigurasjonen.
+# 0.2 Klar for beta testing \o/
+# 
 # -------------
 # 
 #
 # TODO:
-# 1. Skaff en oversikt over alle konfigurasjonsfilene som er nødvendig
-# 2. Få på plass variabler som vi trenger til konfigurasjonsfilene
-# 3. Legge til installasjon av postfix
-# 4. Legge til installasjon av courier
-# 5. Legge til installasjon av amavis med clamav til virus og spamassassin til spam
-# 6. Legge til installasjon av postgrey og policy-weight
-# 7. Finne ut om vi kan mate inn verdier i konfigdialoger under installasjon.
+# 1. Finne ut om vi kan mate inn verdier i konfigdialoger under installasjon.
+# Punkt 1 er desverre ikke mulig i bash uten videre. 
+# Expect er et program som kanskje kan løse dette.
 ##
 
 
@@ -330,6 +328,9 @@ amavis unix - - - - 2 smtp
 ######################################
 # CLAMAV OG SPAMASSASSIN INTEGRASJON #
 ######################################
+adduser clamav amavis
+adduser amavis clamav
+
 echo '
 use strict;
 @bypass_virus_checks_maps = (
@@ -368,7 +369,7 @@ maildirmake -f spam /etc/skel/Maildir
 
 mkdir /etc/skel/.procmail
 touch /etc/skel/.procmailrc /etc/skel/.procmail/log
-echo'
+echo '
 PATH=/bin:/usr/bin:/local/bin
 MAILDIR=$HOME
 LOCKMAIL=$HOME/.lockfile
@@ -390,27 +391,22 @@ $MAILFOLDER/.spam/' > /etc/skel/.procmailrc
 mkdir -m 700 /etc/skel/.spamassassin
 
 
+########################
+# RESTART AV TJENESTER #
+########################
+/etc/init.d/postfix restart
+/etc/init.d/amavis restart
+/etc/init.d/clamav-daemon restart
+/etc/init.d/courier-authdaemon restart
+/etc/init.d/courier-imap restart
+/etc/init.d/courier-pop restart
+/etc/init.d/courier-imap-ssl restart
+/etc/init.d/courier-pop-ssl restart
+/etc/init.d/postgrey restart
 
+echo "
 
+FERDIG!
+Ha en fortsatt fin dag :)
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+"
