@@ -10,6 +10,8 @@ Anbefalt innstallasjonsrekkefølge:
 	- useradd script
 	- default gruppe og bruker ou
 
+- ruting av ip-pakker (gateway)
+
 - dns
 
 - dhcp3
