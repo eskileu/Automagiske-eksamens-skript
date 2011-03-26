@@ -387,6 +387,9 @@ $MAILFOLDER/.spam/
 * ^X-Spam-Status:.Yes,.*
 $MAILFOLDER/.spam/' > /etc/skel/.procmailrc
 
+mkdir -m 700 /etc/skel/.spamassassin
+
+
 
 
 
