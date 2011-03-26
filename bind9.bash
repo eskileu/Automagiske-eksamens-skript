@@ -3,18 +3,19 @@
 #
 # Installasjonsscript for bind9
 #
-## Rev. 0.1 (1.0 er det samme som fult operativ)
+## Rev. 0.2beta (1.0 er det samme som fult operativ)
 # -------------
 # 0.1 Skjelettet opprettet. Ingen ting lagt til ennå. 
 # Lagt til sjekk om det er nett på maskinen. Ingen grunn til å kjøre i gang
 # installasjoner uten nett.
 # Må få oversikt over nødvendige variabler til konfigurasjonen.
-# 
+# 0.2 Scriptet er i beta versjon, dvs at det fungerer, men ikke
+# testet av andre en dlill
 # -------------
 # Last edit: Sat 26 Mar 2011
 #
 # TODO:
-# 
+# 1. Testing av andre
 ##
 
 ###############
@@ -143,31 +144,34 @@ else
 	IPREV=$INPUT_LOWER_CASE
 fi
 
-echo "
-zone "$DOMAIN" {  
+echo '
+zone "DOMAIN" {  
         type master;
-        file "/etc/bind/db.$DOMAIN";
+        file "/etc/bind/db.DOMAIN";
 };
-zone "$IPREV.in-addr.arpa" {
+zone "IPREV.in-addr.arpa" {
         type master;
         notify no;
-        file "/etc/bind/db.$IPREV";
-};" >> /etc/bind/named.conf.local
+        file "/etc/bind/db.IPREV";
+};' >> /etc/bind/named.conf.local
+sed -i "s/DOMAIN/"$DOMAIN"/g" /etc/bind/named.conf.local
+sed -i "s/IPREV/"$IPREV"/g" /etc/bind/named.conf.local
 
 # Lager innslagsfilene for domenet vårt
-echo $DOMAIN , $IPREV
+
+IP=`/sbin/ifconfig eth0 | grep 'inet addr:' | cut -d: -f2 | awk '{ print $1 }'`
 
 touch /etc/bind/db.$DOMAIN 
 touch /etc/bind/db.$IPREV
 
 
-echo "
+echo '
 ; BIND data fil for lokal loopback
 ;
 
 $TTL    604800
 
-@       IN      SOA     ns.$DOMAIN. root.$DOMAIN. (
+@       IN      SOA     ns.DOMAIN. root.DOMAIN. (
                         1               ;Serial
                         604800          ;Refresh
                         86400           ;Retry
@@ -175,17 +179,20 @@ $TTL    604800
                         604800          ;Default TTL
 )
 
-@       IN      NS      ns.$DOMAIN.
-ns      IN      A       $IP
-box     IN      A       $IP" >> /etc/bind/db.$DOMAIN
+@       IN      NS      ns.DOMAIN.
+ns      IN      A       IP
+box     IN      A       IP' >> /etc/bind/db.$DOMAIN
 
-echo "
+sed -i "s/DOMAIN/"$DOMAIN"/g" /etc/bind/db.$DOMAIN
+sed -i "s/IP/"$IP"/g" /etc/bind/db.$DOMAIN
+
+echo '
 ;
 ; BIND reverse data fil for lokal loopback
 ;
-$ORIGIN	$DOMAIN.
+$ORIGIN	DOMAIN.
 $TTL    604800
-@       IN      SOA     ns.$DOMAIN. (
+@       IN      SOA     ns.DOMAIN. (
                         2       ;Serienummer
                         604800  ;Refresh
                         86400   ;Retry
@@ -193,11 +200,14 @@ $TTL    604800
                         604800) ;Negative Cache TTL
 ;
 @       IN      NS      ns.
-93      IN      PTR     ns.$DOMAIN." >> /etc/bind/db.$IPREV
+93      IN      PTR     ns.DOMAIN.' >> /etc/bind/db.$IPREV
+
+sed -i "s/DOMAIN/"$DOMAIN"/g" /etc/bind/db.$IPREV
+sed -i "s/IP/"$IP"/g" /etc/bind/db.$IPREV
 
 # Vi tester innstallasjonen
 
-SNOW=`named-checkzone $DOMAIN /etc/bind/db.$DOMAIN`
-echo $SNOW
+named-checkzone $DOMAIN /etc/bind/db.$DOMAIN
 
+/etc/init.d/bind9 restart
 
