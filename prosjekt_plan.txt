@@ -1,12 +1,10 @@
 Dokumentet skal beskrive hva som gjøres ved hver innstallasjon som krever input, og skal fungere som en plan for rekkefølge vi ser for oss i innstallasjonen.
 
-Server konfigurasjon:
+Anbefalt innstallasjonsrekkefølge:
 
 - sudo
 
 - openssh-server
-
-- openssl
 
 - openldap
 	- useradd script
@@ -20,7 +18,7 @@ Server konfigurasjon:
 	- må sette root-passord under innstallasjonen
 
 - apache2
-	- hva trenger vi av konfigurasjon her?
+	- hva trenger vi av post-konfigurasjon her?
 		- keepalive = off
 		- https/ssl?
 
