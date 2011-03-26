@@ -279,6 +279,121 @@ apt-get install -qy razor pyzor
 sed -i '/ENABLED=0/ c\ENABLED=1' /etc/default/spamassassin
 sed -i '/CRON=0/ c\CRON=1' /etc/default/spamassassin
 
+/etc/init/spamassassin restart
+
+###########
+# AMAVIS  #
+###########
+apt-get install -qy amavisd-new
+echo '
+##
+# Amavis (A mail virus scanner)
+##
+content_filter = amavis:[127.0.0.1]:10024
+receive_override_options = no_address_mappings' >> /etc/postfix/main.cf
+
+echo '
+#
+# amavisd-new scanner
+#
+amavis unix - - - - 2 smtp
+        -o smtp_data_done_timeout=1200
+        -o smtp_send_xforward_command=yes
+        -o disable_dns_lookups=yes
+        -o max_use=20
+        -o smtp_generic_maps=
+
+127.0.0.1:10025 inet n - - - - smtpd
+        -o content_filter=
+        -o smtpd_delay_reject=no
+        -o smtpd_client_restrictions=permit_mynetworks,reject
+        -o smtpd_helo_restrictions=
+        -o smtpd_sender_restrictions=
+        -o smtpd_recipient_restrictions=permit_mynetworks,reject
+        -o smtpd_end_of_data_restrictions=
+        -o smtpd_restriction_classes=
+        -o mynetworks=127.0.0.0/8
+        -o smtpd_error_sleep_time=0
+        -o smtpd_soft_error_limit=1001
+        -o smtpd_hard_error_limit=1000
+        -o smtpd_client_connection_count_limit=0
+        -o smtpd_client_connection_rate_limit=0
+        -o receive_override_options=no_header_body_checks,no_unknown_recipient_checks
+        -o local_header_rewrite_clients=
+        -o local_recipient_maps=
+        -o relay_recipient_maps=
+        -o strict_rfc821_envelopes=yes' >> /etc/postfix/master.cf
+
+/etc/init.d/postfix restart
+		
+
+######################################
+# CLAMAV OG SPAMASSASSIN INTEGRASJON #
+######################################
+echo '
+use strict;
+@bypass_virus_checks_maps = (
+   \%bypass_virus_checks, \@bypass_virus_checks_acl, \$bypass_virus_checks_re);
+
+@bypass_spam_checks_maps = (
+   \%bypass_spam_checks, \@bypass_spam_checks_acl, \$bypass_spam_checks_re);
+
+1;  # ensure a defined return' > /etc/amavis/conf.d/15-content_filter_mode
+
+echo '
+use strict;
+$sa_spam_subject_tag = '***SPAM*** ';
+$sa_tag_level_deflt  = undef;  # add spam info headers if at, or above that level
+$sa_tag2_level_deflt = 7;      # add 'spam detected' headers at that level
+$sa_kill_level_deflt = 30;     # triggers spam evasive actions
+
+#------------ Do not modify anything below this line -------------
+1;  # ensure a defined return' > /etc/amavis/conf.d/50-user
+
+/etc/init.d/amavis restart
+
+
+##############################
+# POSTGREY OG POLICYD-WEIGHT #
+##############################
+apt-get install -qy postgrey policyd-weight
+postconf -e 'smtpd_recipient_restrictions = permit_sasl_authenticated,permit_mynetworks,reject_unauth_destination,reject_non_fqdn_recipient,check_policy_service inet:127.0.0.1:60000,check_policy_service inet:127.0.0.1:12525'
+
+
+########################
+# BRUKER KONFIGURASJON #
+########################
+maildirmake /etc/skel/Maildir
+maildirmake -f spam /etc/skel/Maildir
+
+mkdir /etc/skel/.procmail
+touch /etc/skel/.procmailrc /etc/skel/.procmail/log
+echo'
+PATH=/bin:/usr/bin:/local/bin
+MAILDIR=$HOME
+LOCKMAIL=$HOME/.lockfile
+DEFAULT=$HOME/Mailbox
+PMDIR=$HOME/.procmail
+LOGFILE=$PMDIR/log
+MAILFOLDER=$HOME/Maildir/
+
+# Sender spam med 2-sifrede hits til spam mappen
+:0:
+* ^X-Spam-Status:.Yes, score=[0-9][0-9]
+$MAILFOLDER/.spam/
+
+# Resten til spam-mappe
+:0:
+* ^X-Spam-Status:.Yes,.*
+$MAILFOLDER/.spam/' > /etc/skel/.procmailrc
+
+
+
+
+
+
+
+
 
 
 
