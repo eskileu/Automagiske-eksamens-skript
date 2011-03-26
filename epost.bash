@@ -14,8 +14,9 @@
 # 
 #
 # TODO:
-# 1. Finne ut om vi kan mate inn verdier i konfigdialoger under installasjon.
-# Punkt 1 er desverre ikke mulig i bash uten videre. 
+# 1. La brukerne av scriptet slippe openssl dn dialog.
+# 2. Finne ut om vi kan mate inn verdier i konfigdialoger under installasjon.
+# Punkt 2 er desverre ikke mulig i bash uten videre. 
 # Expect er et program som kanskje kan løse dette.
 ##
 
