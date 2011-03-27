@@ -9,6 +9,8 @@
 # installasjoner uten nett.
 # Må få oversikt over nødvendige variabler til konfigurasjonen.
 # 0.2 Klar for beta testing \o/
+# 0.3 Testet en del på debian 5. Små endringer ut i fra test resultatene. 
+# Lagt til kode i cleanup funksjonen. 
 # 
 # -------------
 # 
@@ -27,8 +29,9 @@
 # Rydde funksjon. Kun et skjelett må fylles
 function cleanUp()
 {
-	echo "RYDDER OPP ETTER DEG!!"
-	# LEGG INN KODE
+	echo "Fjerner pakker som har blitt installert"
+	apt-get purge -qy postfix sasl2-bin procmail libsasl2-modules courier-authdaemon courier-base courier-imap courier-imap-ssl courier-pop courier-pop-ssl courier-ssl gamin libgamin0 libglib2.0-0 clamav clamav-docs clamav-daemon clamav-freshclam arc arj bzip2 cabextract lzop nomarch p7zip pax tnef unrar-free unzip zoo ripole lha unrar spamassassin spamc razor pyzor amavisd-new postgrey policyd-weight
+	
 }
 
 # Pause funksjon som krever [ENTER] for å fortsette
@@ -105,6 +108,12 @@ if (( $UID != 0 )); then
 	echo "*!* FATAL: Can only be executed by root."
 	exit
 fi
+
+if [ "$TEMP" == "rensk" ]; then
+	cleanUp
+	exit
+fi
+
 REDTEMP=$(tput setaf 1)
 LIGHTCYANTEMP=$(tput bold ; tput setaf 6)
 RESETTEMP=$(tput sgr0)
