@@ -1,6 +1,7 @@
 #!/bin/bash
 
 # Samba
+# ver 0.1 skjellett
 
 #############
 # Funksjoner
@@ -75,6 +76,28 @@ touch /etc/samba/smb.conf
 echo '
 #======================= Global Settings =======================
 
+# Her kommer LDAP-tingene
+ldap suffix = atlas,dc=localdomain
+ldap user suffix = ou=People
+ldap group suffix = ou=Group
+ldap machine suffix = ou=People
+ldap idmap suffix = ou=Idmap
+ldap passwd sync = yes
+ldap admin dn = cn=admin,dc=atlas,dc=localdomain
+
+passdb backend = ldapsam:ldap://localhost/
+nt acl support = no
+
+add user script = /usr/sbin/smbldap-useradd -m "%u"
+ldap delete dn = Yes
+#delete user script = /usr/sbin/smbldap-userdel "%u"
+add machine script = /usr/sbin/smbldap-useradd -w "%u"
+add group script = /usr/sbin/smbldap-groupadd -p "%g"
+#delete group script = /usr/sbin/smbldap-groupdel "%g"
+add user to group script = /usr/sbin/smbldap-groupmod -m "%u" "%g"
+delete user from group script = /usr/sbin/smbldap-groupmod -x "%u" "%g"
+set primary group script = /usr/sbin/smbldap-usermod -g "%g" "%u"
+
 [global]
 
 ## Browsing/Identification ###
@@ -134,7 +157,7 @@ echo '
 
 [samba-share]
    comment=Denne mappen inneholder delte dokumenter
-   path = SHARE_PATH
+   path = /home/delt
    public = yes
    writable = yes
 
@@ -169,28 +192,175 @@ fi
 
 sed -i "s/NETBIOS_NAME/"$NETBIOS_NAME"/g" /etc/samba/smb.conf
 
-SPORSMAL="Sett en server string for beskrivelse av serveren: "
-getInput 1
-if [ -z $INPUT_LOWER_CASE ]; then
-	SERVER_STRING=""
-else
-	SERVER_STRING=$INPUT_LOWER_CASE
-fi
-echo $SERVER_STRING
+#SPORSMAL="Sett en server string for beskrivelse av serveren: "
+#getInput 1
+#if [ -z $INPUT_LOWER_CASE ]; then
+#	SERVER_STRING=""
+#else
+#	SERVER_STRING=$INPUT_LOWER_CASE
+#fi
+#echo $SERVER_STRING
 # sed -i "s/SERVER_STRING/"$SERVER_STRING"/g" /etc/samba/smb.conf
 
-SPORSMAL="Skriv inn PATH til share: "
-getInput 1
-if [ -z $INPUT_LOWER_CASE ]; then
-	SHARE_PATH=""
-else
-	SHARE_PATH=$INPUT_LOWER_CASE
-fi
-echo $SHARE_PATH
+#SPORSMAL="Skriv inn PATH til share: "
+#getInput 1
+#if [ -z $INPUT_LOWER_CASE ]; then
+#	SHARE_PATH=""
+#else
+#	SHARE_PATH=$INPUT_LOWER_CASE
+#fi
+#echo $SHARE_PATH
 # sed -i "s/SHARE_PATH/"$SHARE_PATH"/g" /etc/samba/smb.conf
 
-# sudo smbpasswd -U <brukernavn>
+smbpasswd -U janmag
 
-# smbclient -U <brukenavn> -L localhost
+smbclient -U janmag -L localhost
+
+
+# PDC
+
+mkdir -m 0755 /var/lib/samba/netlogon
+
+echo 'net use w: \\2badr-gr5-m2\samba-share /P:No /yes' > /var/lib/samba/netlogon/netlogon.bat
+
+echo "setter root passord"
+smbpasswd -a
+
+groupadd maskiner
+useradd -g maskiner -d /dev/null -s /bin/false winxp\$
+smbpasswd -a -m winxp
+
+
+# Integrere Samba og LDAP
+
+apt-get install -q -y smbldap-tools
+
+cp /usr/share/doc/samba-doc/examples/LDAP/samba.schema.gz /etc/ldap/schema/
+gunzip /etc/ldap/schema/samba.schema.gz
+
+sed -i '14 a\include        /etc/ldap/schema/samba.schema' /etc/ldap/slapd.conf
+
+/etc/init.d/samba restart
+
+# her må vi gjøre noe
+echo "setter ldap passord i samba"
+smbpasswd -w 123
+
+echo '
+############################
+# Credential Configuration #
+############################
+# Notes: you can specify two differents configuration if you use a
+# master ldap for writing access and a slave ldap server for reading access
+# By default, we will use the same DN (so it will work for standard Samba
+# release)
+slaveDN="cn=Manager,dc=company,dc=com"
+slavePw="secret"
+masterDN="cn=Manager,dc=company,dc=com"
+masterPw="secret"' > /etc/smbldap-tools/smbldap_bind.conf
+
+chmod 600 /etc/smbldap-tools/smbldap_bind.conf
+
+LOCALSID=`net getlocalsid`
+
+echo '
+# General Configuration
+SID="LOCALSID"
+
+# LDAP Configuration
+slaveLDAP="127.0.0.1"
+slavePort="389"
+
+masterLDAP="127.0.0.1"
+masterPort="389"
+
+# Use TLS for LDAP
+ldapTLS="0"
+
+verify="none"
+
+# CA certificate
+cafile="/etc/smbldap-tools/ca.pem"
+
+clientcert="/etc/smbldap-tools/smbldap-tools.pem"
+
+clientkey="/etc/smbldap-tools/smbldap-tools.key"
+
+# LDAP Suffix
+suffix="dc=atlas,dc=localdomain"
+
+usersdn="ou=People,${suffix}"
+computersdn="ou=People,${suffix}"
+groupsdn="ou=Group,${suffix}"
+idmapdn="ou=Idmap,${suffix}"
+sambaUnixIdPooldn="sambaDomainName=atlas,dc=atlas,dc=localdomain"
+
+# Default scope Used
+scope="sub"
+
+hash_encrypt="MD5"
+
+crypt_salt_format="%s"
+
+
+# Unix Accounts Configuration
+
+userLoginShell="/bin/bash"
+
+# Home directory
+userHome="/home/%U"
+
+# Gecos
+userGecos="System User"
+
+# Default User (POSIX and Samba) GID
+defaultUserGid="513"
+
+# Default Computer (Samba) GID
+defaultComputerGid="515"
+
+# Skel dir
+skeletonDir="/etc/skel"
+
+defaultMaxPasswordAge="99"
+
+
+# SAMBA Configuration
+
+# The UNC path to home drives location (%U username substitution)
+userSmbHome="\\atlas\homes\%U"
+
+# The UNC path to profiles locations (%U username substitution)
+userProfile="\\atlas\profiles\%U"
+
+# The default Home Drive Letter mapping
+userHomeDrive="H:"
+
+# The default user netlogon script name (%U username substitution)
+userScript=startup.cmd
+
+# Domain appended to the users "mail"-attribute
+mailDomain="atlas.localdomain"
+
+# SMBLDAP-TOOLS Configuration (default are ok for a RedHat)
+
+# Allows not to use smbpasswd (if with_smbpasswd == 0 in smbldap_conf.pm) but
+with_smbpasswd="0"
+smbpasswd="/usr/bin/smbpasswd"' > /etc/smbldap-tools/smbldap.conf
+
+sed -i "s/LOCALSID/"$LOCALSID"/g" > /etc/smbldap-tools/smbldap.conf
+
+smbldap-populate -e populate.ldif
+
+smbldap-populate
+
+
+
+
+
+
+
+
+
 
 
