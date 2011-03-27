@@ -76,8 +76,10 @@ touch /etc/samba/smb.conf
 echo '
 #======================= Global Settings =======================
 
+[global]
+
 # Her kommer LDAP-tingene
-ldap suffix = atlas,dc=localdomain
+ldap suffix = dc=atlas,dc=localdomain
 ldap user suffix = ou=People
 ldap group suffix = ou=Group
 ldap machine suffix = ou=People
@@ -98,7 +100,6 @@ add user to group script = /usr/sbin/smbldap-groupmod -m "%u" "%g"
 delete user from group script = /usr/sbin/smbldap-groupmod -x "%u" "%g"
 set primary group script = /usr/sbin/smbldap-usermod -g "%g" "%u"
 
-[global]
 
 ## Browsing/Identification ###
 
@@ -212,8 +213,10 @@ sed -i "s/NETBIOS_NAME/"$NETBIOS_NAME"/g" /etc/samba/smb.conf
 #echo $SHARE_PATH
 # sed -i "s/SHARE_PATH/"$SHARE_PATH"/g" /etc/samba/smb.conf
 
+echo "setter smbpassord for janmag"
 smbpasswd -U janmag
 
+echo "tester oppsettet"
 smbclient -U janmag -L localhost
 
 
@@ -226,6 +229,7 @@ echo 'net use w: \\2badr-gr5-m2\samba-share /P:No /yes' > /var/lib/samba/netlogo
 echo "setter root passord"
 smbpasswd -a
 
+echo "setter passord for klientmaskin"
 groupadd maskiner
 useradd -g maskiner -d /dev/null -s /bin/false winxp\$
 smbpasswd -a -m winxp
@@ -240,11 +244,12 @@ gunzip /etc/ldap/schema/samba.schema.gz
 
 sed -i '14 a\include        /etc/ldap/schema/samba.schema' /etc/ldap/slapd.conf
 
+/etc/init.d/slapd restart
 /etc/init.d/samba restart
 
 # her må vi gjøre noe
 echo "setter ldap passord i samba"
-smbpasswd -w 123
+smbpasswd -w 1234
 
 echo '
 ############################
@@ -254,19 +259,21 @@ echo '
 # master ldap for writing access and a slave ldap server for reading access
 # By default, we will use the same DN (so it will work for standard Samba
 # release)
-slaveDN="cn=Manager,dc=company,dc=com"
-slavePw="secret"
-masterDN="cn=Manager,dc=company,dc=com"
-masterPw="secret"' > /etc/smbldap-tools/smbldap_bind.conf
+slaveDN="cn=admin,dc=atlas,dc=localdomain"
+slavePw="1234"
+masterDN="cn=admin,dc=atlas,dc=localdomain"
+masterPw="1234"' > /etc/smbldap-tools/smbldap_bind.conf
 
 chmod 600 /etc/smbldap-tools/smbldap_bind.conf
 
-LOCALSID=`net getlocalsid`
+LOCALSID=`net getlocalsid | mawk '{ print $6 }'`
+echo $LOCALSID
+
+echo "
+# General Configuration
+SID="$LOCALSID"" > /etc/smbldap-tools/smbldap.conf
 
 echo '
-# General Configuration
-SID="LOCALSID"
-
 # LDAP Configuration
 slaveLDAP="127.0.0.1"
 slavePort="389"
@@ -293,7 +300,7 @@ usersdn="ou=People,${suffix}"
 computersdn="ou=People,${suffix}"
 groupsdn="ou=Group,${suffix}"
 idmapdn="ou=Idmap,${suffix}"
-sambaUnixIdPooldn="sambaDomainName=atlas,dc=atlas,dc=localdomain"
+sambaUnixIdPooldn="sambaDomainName=atlas,dc=localdomain"
 
 # Default scope Used
 scope="sub"
@@ -344,23 +351,12 @@ mailDomain="atlas.localdomain"
 
 # SMBLDAP-TOOLS Configuration (default are ok for a RedHat)
 
-# Allows not to use smbpasswd (if with_smbpasswd == 0 in smbldap_conf.pm) but
-with_smbpasswd="0"
-smbpasswd="/usr/bin/smbpasswd"' > /etc/smbldap-tools/smbldap.conf
+# Allows not to use smbpasswd
+smbpasswd="/usr/bin/smbpasswd"' >> /etc/smbldap-tools/smbldap.conf
 
-sed -i "s/LOCALSID/"$LOCALSID"/g" > /etc/smbldap-tools/smbldap.conf
+#sed -i "s/LOCALSID/"$LOCALSID"/g" /etc/smbldap-tools/smbldap.conf
+#sed -i "s/LOCALSID/"`net getlocalsid`"/g" /etc/smbldap-tools/smbldap.conf
 
 smbldap-populate -e populate.ldif
 
 smbldap-populate
-
-
-
-
-
-
-
-
-
-
-
