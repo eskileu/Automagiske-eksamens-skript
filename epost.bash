@@ -31,7 +31,6 @@ function cleanUp()
 {
 	echo "Fjerner pakker som har blitt installert"
 	apt-get purge -qy postfix sasl2-bin procmail libsasl2-modules courier-authdaemon courier-base courier-imap courier-imap-ssl courier-pop courier-pop-ssl courier-ssl gamin libgamin0 libglib2.0-0 clamav clamav-docs clamav-daemon clamav-freshclam arc arj bzip2 cabextract lzop nomarch p7zip pax tnef unrar-free unzip zoo ripole lha unrar spamassassin spamc razor pyzor amavisd-new postgrey policyd-weight
-	
 }
 
 # Pause funksjon som krever [ENTER] for å fortsette
@@ -98,10 +97,10 @@ function getInput()
 
 TEMP=$1 # Forbanna $1 funket dårlig direkte i if setningen....
 # Kommenter ut når rev er testet. 
-if [ "$TEMP" != "test" ]; then
-	echo "Det jobbes med scriptet for øyeblikket vennligst prøv igjen senere"
-	exit
-fi
+#if [ "$TEMP" != "test" ]; then
+#	echo "Det jobbes med scriptet for øyeblikket vennligst prøv igjen senere"
+#	exit
+#fi
 
 # Sikre at kun root kan kjøre skriptet.
 if (( $UID != 0 )); then
@@ -209,7 +208,7 @@ adduser postfix sasl
 # Opprette ssl nøkler til postfix
 mkdir /etc/postfix/ssl
 cd /etc/postfix/ssl/
-echo "${REDTEMP}OBS!${RESETTEMP} smtpd og pem passordene må har 4 teg eller mer!!"
+echo "${REDTEMP}OBS!${RESETTEMP} smtpd og pem passordene må har 4 tegn eller mer!!"
 openssl genrsa -des3 -rand /etc/hosts -out smtpd.key 1024
 chmod 600 smtpd.key
 openssl req -new -key smtpd.key -out smtpd.csr
@@ -286,7 +285,7 @@ apt-get install -qy razor pyzor
 sed -i '/ENABLED=0/ c\ENABLED=1' /etc/default/spamassassin
 sed -i '/CRON=0/ c\CRON=1' /etc/default/spamassassin
 
-/etc/init/spamassassin restart
+/etc/init.d/spamassassin restart
 
 ###########
 # AMAVIS  #
@@ -354,7 +353,7 @@ echo -e '
 use strict;
 $sa_spam_subject_tag = \047***SPAM***\047;
 $sa_tag_level_deflt  = undef;  # add spam info headers if at, or above that level
-$sa_tag2_level_deflt = 7;      # add 'spam detected' headers at that level
+$sa_tag2_level_deflt = 7;      # add spam detected headers at that level
 $sa_kill_level_deflt = 30;     # triggers spam evasive actions
 
 #------------ Do not modify anything below this line -------------
