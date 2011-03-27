@@ -2,13 +2,14 @@
 
 ## 
 # Automatisert apache mysql phpmyadmin phpldapadmin
-# Rev. 0.2 (1.0 er det samme som fult operativ)
+# Rev. 0.3 (1.0 er det samme som fult operativ)
 # -------------
 # 0.1 Skjelettet opprettet. Ingen ting lagt til ennå. 
 # Lagt til sjekk om det er nett på maskinen. Ingen grunn til å kjøre i gang
 # installasjoner uten nett.
 # Må få oversikt over nødvendige variabler til konfigurasjonen.
 # 0.2 Klar for testing.
+# 0.3 Wordpress lagt til med database oppretting. Må testes
 # -------------
 # Last edit: Sun 27 Mar 2011
 #
@@ -128,10 +129,17 @@ pause "Om du er sikker trykk ENTER eller avbryt med CTRL+C"
 
 # Konfig variabler
 NETT_I_CIDR="" # Denne MÅ vi ha
+MYSQLROOTPASS=""
 
 SPORSMAL="Angi LAN med CIDR notasjon (192.168.10.0/24) "
 getInput 1
-NETT_I_CIDR=$INPUT_LOWER_CASE
+NETT_I_CIDR=
+
+SPORSMAL="Skriv inn ønsket rootpassord for mysql: "
+getInput 1
+MYSQLROOTPASS=$INPUT
+
+
 
 
 
@@ -189,7 +197,7 @@ Alias /pma /usr/share/phpmyadmin
         # Tving alle tilkoblinger over paa https
         RewriteEngine on
         RewriteCond %{HTTPS} off
-        RewriteRule ^(.*)$ https://%{HTTP_HOST}/phpmyadmin/ [R]
+        RewriteRule ^(.*)$ https://%{HTTP_HOST}/pma/ [R]
 </Directory>" > /etc/phpmyadmin/apache.conf
 
 ################
@@ -243,7 +251,7 @@ echo "
     # Tving alle tilkoblinger over paa https
     RewriteEngine on
     RewriteCond %{HTTPS} off
-    RewriteRule ^(.*)$ https://%{HTTP_HOST}/phpmyadmin/ [R]
+    RewriteRule ^(.*)$ https://%{HTTP_HOST}/pla/ [R]
 </Directory>" > /etc/phpldapadmin/apache.conf
 
 #############
@@ -257,6 +265,14 @@ mv wordpress blog
 
 /etc/init.d/apache2 restart
 
+CREATEDB="CREATE DATABASE wordpress;"
+WPDBUSER="GRANT ALL PRIVILEGES ON wordpress.* TO wordpress@localhost IDENTIFIED BY 'asdfg1234N';"
+DBSKYLL="FLUSH PRIVILEGES;"
+
+mysql -u root --password=$MYSQLROOTPASS -e "$CREATEDB"
+mysql -u root --password=$MYSQLROOTPASS -e "$WPDBUSER"
+mysql -u root --password=$MYSQLROOTPASS -e "$DBSKYLL"
+
 echo "
 
 ${REDTEMP}URL OVERSIKT${RESETTEMP}
@@ -265,5 +281,9 @@ phpmyadmin   ----->  https://FQDN/pma
 
 Wordpress er lastet ned, men installasjonen er ikke fullført!
 wordpress    ----->  http://FQDN/blog/wp-admin/install.php
-
+				     Databasenavn ---> wordpress
+				     DBbruker     ---> wordpress
+				     DBpassord    ---> asdfg1234N
+				     hostvalg     ---> localhost
+				
 "
