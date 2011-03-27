@@ -209,6 +209,7 @@ adduser postfix sasl
 # Opprette ssl nøkler til postfix
 mkdir /etc/postfix/ssl
 cd /etc/postfix/ssl/
+echo "${REDTEMP}OBS!${RESETTEMP} smtpd og pem passordene må har 4 teg eller mer!!"
 openssl genrsa -des3 -rand /etc/hosts -out smtpd.key 1024
 chmod 600 smtpd.key
 openssl req -new -key smtpd.key -out smtpd.csr
