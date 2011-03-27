@@ -5,7 +5,7 @@
 # før selve installasjonene av ulike tjenster.
 ##
 
-apt-get install openssh-server sudo htop screen openssl quota quotatool acl vim 
+apt-get install -qy openssh-server sudo htop screen openssl quota quotatool acl vim 
 echo "Husk å slå av muligheten til å logge inn som root etter at
 sudo er konfigurert ---> /etc/ssh/sshd_config"
 
