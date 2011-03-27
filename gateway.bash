@@ -54,4 +54,4 @@ update-rc.d fw-script.sh defaults
 
 # Disable ipv6 slik at nettverksinterfacen ikke starter opp med dette
 
-echo net.ipv6.conf.all.disable_ipv6=1 > /etc/sysctl.d/disableipv6.conf
+# echo net.ipv6.conf.all.disable_ipv6=1 > /etc/sysctl.d/disableipv6.conf

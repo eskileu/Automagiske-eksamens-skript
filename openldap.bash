@@ -113,7 +113,7 @@ if (( $UID != 0 )); then
 fi
 
 # Vi er avhengig av nett til installasjonene så vi gjør en pingtest
-if ping -c 1 192.168.0.1 > /dev/null; then
+if ping -c 1 vg.no > /dev/null; then
 	echo "PING: OK"
 else
 	REDTEMP=$(tput setaf 1)
@@ -261,7 +261,7 @@ dpkg-reconfigure libnss-ldap
 
 # Konfigurerer/etc/nsswitch.conf
 
-sed 's|compat|files ldap|g' /etc/nsswitch.conf
+sed -i 's|compat|files ldap|g' /etc/nsswitch.conf
 
 /etc/init.d/nscd stop
 
