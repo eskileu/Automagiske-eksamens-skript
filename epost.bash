@@ -15,9 +15,6 @@
 #
 # TODO:
 # 1. La brukerne av scriptet slippe openssl dn dialog.
-# 2. Finne ut om vi kan mate inn verdier i konfigdialoger under installasjon.
-# Punkt 2 er desverre ikke mulig i bash uten videre. 
-# Expect er et program som kanskje kan løse dette.
 ##
 
 
@@ -25,6 +22,7 @@
 # UNDER DETTE SKILLET SKAL KUN FUNKSJONER LIGGE  #
 # FUNKSJONER MÅ VIST LESES FØRST...              #
 ##################################################
+
 
 # Rydde funksjon. Kun et skjelett må fylles
 function cleanUp()
@@ -408,6 +406,7 @@ mkdir -m 700 /etc/skel/.spamassassin
 /etc/init.d/courier-imap-ssl restart
 /etc/init.d/courier-pop-ssl restart
 /etc/init.d/postgrey restart
+/etc/init.d/spamassassin restart
 
 echo "
 
