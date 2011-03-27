@@ -3,7 +3,7 @@
 #
 # Openldap script
 #
-## Rev. 0.2 (1.0 er det samme som fult operativ)
+## Rev. 0.21 (1.0 er det samme som fult operativ)
 # -------------
 # 0.1 Skjelettet opprettet. Ingen ting lagt til ennå. 
 # Lagt til sjekk om det er nett på maskinen. Ingen grunn til å kjøre i gang
@@ -12,8 +12,9 @@
 # 0.15 Lagt til de første elementene i innstallasjonen og lagt til alle 
 # linjene i guiden (kommentert ut) slik at de kommer i riktig rekkefølge
 # 0.2 Første beta versjon av fullstendig script
+# 0.21 Noen mindre tweaks
 # -------------
-# Last edit: Sat 26 Mar 2011
+# Last edit: Sun 27 Mar 2011
 #
 # TODO:
 # 1. Sjekke for faktiske feil
@@ -149,10 +150,10 @@ DC1='BASE   '$DC
 echo $DC1 >> /etc/ldap/ldap.conf
 
 
-SPORSMAL="Skriv inn ip-adresse:"
+SPORSMAL="Skriv inn intern ip-adresse:"
 getInput 1
 if [ -z $INPUT_LOWER_CASE ]; then
-	IP=`/sbin/ifconfig eth0 | grep 'inet addr:' | cut -d: -f2 | awk '{ print $1 }'`
+	IP=`/sbin/ifconfig eth1 | grep 'inet addr:' | cut -d: -f2 | awk '{ print $1 }'`
 else
 	IP=$INPUT_LOWER_CASE
 fi
@@ -221,7 +222,7 @@ slapadd -c -v -l /tmp/ou.ldif
 # Lager en testbruker (goofy) for at vi skal se at alt er i orden 
 
 touch /tmp/goofy.ldif
-echo $DC
+#echo $DC
 echo "
 dn: cn=goofy,ou=group,$DC
 cn: goofy
