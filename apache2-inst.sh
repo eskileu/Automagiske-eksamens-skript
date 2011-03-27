@@ -1,20 +1,19 @@
 #!/bin/bash 
 
 ## 
-# Automatisert apache post-konfigurasjon
-# Rev. 0.1 (1.0 er det samme som fult operativ)
+# Automatisert apache mysql phpmyadmin phpldapadmin
+# Rev. 0.2 (1.0 er det samme som fult operativ)
 # -------------
 # 0.1 Skjelettet opprettet. Ingen ting lagt til ennå. 
 # Lagt til sjekk om det er nett på maskinen. Ingen grunn til å kjøre i gang
 # installasjoner uten nett.
 # Må få oversikt over nødvendige variabler til konfigurasjonen.
+# 0.2 Klar for testing.
 # -------------
-# Last edit: Fri 25 Mar 2011
+# Last edit: Sun 27 Mar 2011
 #
 # TODO:
-# 1. Skaff en oversikt over alle konfigurasjonsfilene som er nødvendig
-# 2. Få på plass variabler som vi trenger til konfigurasjonsfilene
-# 3. Finne ut om vi kan mate inn verdier i konfigdialoger under installasjon.
+#
 ##
 
 
@@ -128,40 +127,143 @@ pause "Om du er sikker trykk ENTER eller avbryt med CTRL+C"
 ##
 
 # Konfig variabler
-HOSTNAVN="" # Denne MÅ vi ha
-DOMENE=""   # Denne MÅ vi ha
-HOSTIP=""   # Denne MÅ vi ha
-EKSTERNT_INTERFACE="" # Om noen skulle bruke noe annet en eth0
+NETT_I_CIDR="" # Denne MÅ vi ha
 
-SPORSMAL="Hvilken hostname har serveren: "
+SPORSMAL="Angi LAN med CIDR notasjon (192.168.10.0/24) "
 getInput 1
-if [ -z $INPUT_LOWER_CASE ]; then
-	HOSTNAVN=`hostname`
-else
-	HOSTNAVN=$INPUT_LOWER_CASE
-fi
+NETT_I_CIDR=$INPUT_LOWER_CASE
 
-SPORSMAL="Hvilket domene skal serveren benytte: "
-getInput 1
-if [ -z $INPUT_LOWER_CASE ]; then
-	DOMENE=`hostname -d`
-else
-	DOMENE=$INPUT_LOWER_CASE
-fi
 
-SPORSMAL="Hvilket interface er det eksterne: "
-getInput 1
-if [ -z $INPUT_LOWER_CASE ]; then
-	EKSTERNT_INTERFACE="eth0"
-else
-	EKSTERNT_INTERFACE=$INPUT_LOWER_CASE
-fi
 
-SPORSMAL="Skriv inn serveren sin eksterne IP adresse:"
-getInput 1
-if [ -z $INPUT_LOWER_CASE ]; then
-	HOSTIP=`ifconfig $EKSTERNT_INTERFACE | grep 'inet addr:' | cut -d: -f2 | awk '{ print $1}'`
-else
-	HOSTIP=$INPUT_LOWER_CASE
-fi
+#########
+# MYSQL #
+#########
+apt-get install -qy mysql-server
 
+##########
+# APACHE #
+##########
+apt-get install -qy apache2 apache2-mpm-prefork
+apt-get install -qy php5
+
+# Aktiver støtte for https sider. Better safe then sorry :)
+a2enmod ssl
+a2enmod userdir
+mkdir /etc/skel/public_html
+a2ensite default-ssl
+make-ssl-cert generate-default-snakeoil
+
+##############
+# PHPMYADMIN #
+##############
+apt-get install -qy phpmyadmin
+
+# Vi vil tvinge folk over på https og det skal 
+# kun være mulig å nå den om man sitter internt
+a2enmod rewrite
+echo "
+Alias /pma /usr/share/phpmyadmin
+
+<Directory /usr/share/phpmyadmin>
+        Options Indexes FollowSymLinks
+        DirectoryIndex index.php
+        AllowOverride All
+        Order deny,allow
+
+        <IfModule mod_php5.c>
+                AddType application/x-httpd-php .php
+
+                php_flag magic_quotes_gpc Off
+                php_flag track_vars On
+                php_flag register_globals Off
+                php_value include_path .
+        </IfModule>
+
+        # Blokker alle eksterne tilkoblinger
+        Deny from all
+
+        # Aapne for lokale tilkoblinger
+        Allow from 127.0.0.1
+        Allow from ${NETT_I_CIDR}
+
+        # Tving alle tilkoblinger over paa https
+        RewriteEngine on
+        RewriteCond %{HTTPS} off
+        RewriteRule ^(.*)$ https://%{HTTP_HOST}/phpmyadmin/ [R]
+</Directory>" > /etc/phpmyadmin/apache.conf
+
+################
+# PHPLDAPADMIN #
+################
+apt-get install -qy phpldapadmin
+
+echo "
+<IfModule mod_alias.c>
+    Alias /pla /usr/share/phpldapadmin/htdocs
+</IfModule>
+
+<Directory /usr/share/phpldapadmin/htdocs/>
+
+    DirectoryIndex index.php
+    Options +FollowSymLinks
+    AllowOverride All
+
+    Order deny,allow
+    Deny from all
+
+    # Aapne for lokale tilkoblinger
+    Allow from 127.0.0.1
+    Allow from ${NETT_I_CIDR}
+
+    <IfModule mod_mime.c>
+
+      <IfModule mod_php5.c>
+        AddType application/x-httpd-php .php
+
+        php_flag magic_quotes_gpc Off
+        php_flag track_vars On
+        php_flag register_globals On
+        php_value include_path .
+      </IfModule>
+
+      <IfModule !mod_php5.c>
+        <IfModule mod_actions.c>
+          <IfModule mod_cgi.c>
+            AddType application/x-httpd-php .php
+            Action application/x-httpd-php /cgi-bin/php5
+          </IfModule>
+          <IfModule mod_cgid.c>
+            AddType application/x-httpd-php .php
+            Action application/x-httpd-php /cgi-bin/php5
+           </IfModule>
+        </IfModule>
+      </IfModule>
+
+    </IfModule>
+    # Tving alle tilkoblinger over paa https
+    RewriteEngine on
+    RewriteCond %{HTTPS} off
+    RewriteRule ^(.*)$ https://%{HTTP_HOST}/phpmyadmin/ [R]
+</Directory>" > /etc/phpldapadmin/apache.conf
+
+#############
+# WORDPRESS #
+#############
+cd /var/www ..
+wget http://wordpress.org/latest.tar.gz
+tar xvfz latest.tar.gz
+rm latest.tar.gz
+mv wordpress blog
+
+/etc/init.d/apache2 restart
+
+echo "
+
+${REDTEMP}URL OVERSIKT${RESETTEMP}
+phpldapadmin ----->  https://FQDN/pla
+phpmyadmin   ----->  https://FQDN/pma
+
+Wordpress er lastet ned, men installasjonen er ikke fullført!
+wordpress    ----->  http://FQDN/blog/wp-admin/install.php
+
+"
