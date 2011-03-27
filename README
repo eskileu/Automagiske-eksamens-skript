@@ -1,2 +1,26 @@
 Skriptpakke som hjelper til med installasjon og konfigurasjon av typiske tjenester vi ønsker på en debianbox.
 Alle skript brukes på eget ansvar. Sparer ikke så mye tid på selve installasjonene, men konfigurasjonen vil gå mye fortere med ved hjelp av skript.
+
+For å bruke skriptene så ha klar en liste som du plotter inn dine svar på spørsmål slik at det ikke forsvinner i ettertid.
+
+Epost
+- Ekstern IP:
+- Intern IP:
+- Eksternt Interface:
+- Internt Interface:
+- Hostname:
+- FQDN:
+- Openssl smtpd passord
+- Openssl PEM passord
+
+Mysql
+- Root passord
+
+Openldap
+- dn
+- Internurl
+- Admin passord
+- nss passord
+
+
+
