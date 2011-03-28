@@ -276,8 +276,8 @@ mysql -u root --password=$MYSQLROOTPASS -e "$DBSKYLL"
 echo "
 
 ${REDTEMP}URL OVERSIKT${RESETTEMP}
-phpldapadmin ----->  https://FQDN/pla
-phpmyadmin   ----->  https://FQDN/pma
+phpldapadmin ----->  https://FQDN/pla (kun internt)
+phpmyadmin   ----->  https://FQDN/pma (kun internt)
 
 Wordpress er lastet ned, men installasjonen er ikke fullført!
 wordpress    ----->  http://FQDN/blog/wp-admin/install.php
