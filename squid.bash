@@ -207,11 +207,11 @@ coredump_dir /var/spool/squid3" > /etc/squid3/squid.conf
 # Restart av squid3
 /etc/init.d/squid3 rnanoestart
 
-echo "
+echo '
 Ferdig!!
-Du må fortsatt sette iptables regelen.
+Du må fortsatt sette iptables regelen. (Eskil vi setter den i gateway scriptet, eller? :))
 Eksempel:
 iptables -t nat -A PREROUTING -i eth1 -p tcp --dport 80 -j REDIRECT --to-port $PORT
-"
+'
 
 
