@@ -21,10 +21,10 @@ echo '
 ## Browsing/Identification ###
 
 # Change this to the workgroup/NT-domain name your Samba server will part of
-   workgroup = atlas
+   workgroup = deadbits
 
 #  Maskinnavnet som jeg satte på Linux-en som kjører Sambaen
-   netbios name = atlas
+   netbios name = deadbits
    server string = atlas
    domain master = yes
 
@@ -95,7 +95,7 @@ echo '
 
 mkdir -m 0755 /var/lib/samba/netlogon
 
-echo 'net use w: \\atlas\samba-share /P:No /yes' > /var/lib/samba/netlogon/netlogon.bat
+echo 'net use w: \\deadbits\samba-share /P:No /yes' > /var/lib/samba/netlogon/netlogon.bat
 
 # root passord 2 ganger
 echo "Sett root passord for root:"
@@ -118,13 +118,13 @@ sed -i '14 a\include        /etc/ldap/schema/samba.schema' /etc/ldap/slapd.conf
 
 echo '
 # Her kommer LDAP-tingene
-ldap suffix = atlas,dc=localdomain
+ldap suffix = deadbits,dc=localdomain
 ldap user suffix = ou=People
 ldap group suffix = ou=Group
 ldap machine suffix = ou=People
 ldap idmap suffix = ou=Idmap
 ldap passwd sync = yes
-ldap admin dn = cn=admin,dc=atlas,dc=localdomain
+ldap admin dn = cn=admin,dc=deadbits,dc=localdomain
 
 passdb backend = ldapsam:ldap://localhost/
 nt acl support = no
@@ -155,9 +155,9 @@ echo '
 # master ldap for writing access and a slave ldap server for reading access
 # By default, we will use the same DN (so it will work for standard Samba
 # release)
-slaveDN="cn=admin,dc=atlas,dc=localdomain"
+slaveDN="cn=admin,dc=deadbits,dc=localdomain"
 slavePw="1234"
-masterDN="cn=admin,dc=atlas,dc=localdomain"
+masterDN="cn=admin,dc=deadbits,dc=localdomain"
 masterPw="1234"' > /etc/smbldap-tools/smbldap_bind.conf
 
 chmod 600 /etc/smbldap-tools/smbldap_bind.conf
@@ -194,7 +194,7 @@ clientcert="/etc/smbldap-tools/smbldap-tools.pem"
 clientkey="/etc/smbldap-tools/smbldap-tools.key"
 
 # LDAP Suffix
-suffix="dc=atlas,dc=localdomain"
+suffix="dc=deadbits,dc=localdomain"
 
 usersdn="ou=People,${suffix}"
 computersdn="ou=People,${suffix}"
@@ -235,10 +235,10 @@ defaultMaxPasswordAge="99"
 # SAMBA Configuration
 
 # The UNC path to home drives location (%U username substitution)
-userSmbHome="\\atlas\homes\%U"
+userSmbHome="\\deadbits\homes\%U"
 
 # The UNC path to profiles locations (%U username substitution)
-userProfile="\\atlas\profiles\%U"
+userProfile="\\deadbits\profiles\%U"
 
 # The default Home Drive Letter mapping
 userHomeDrive="H:"
@@ -247,7 +247,7 @@ userHomeDrive="H:"
 userScript=startup.cmd
 
 # Domain appended to the users "mail"-attribute
-mailDomain="atlas.localdomain"
+mailDomain="deadbits.localdomain"
 
 # SMBLDAP-TOOLS Configuration (default are ok for a RedHat)
 
@@ -257,7 +257,9 @@ smbpasswd="/usr/bin/smbpasswd"' >> /etc/smbldap-tools/smbldap.conf
 
 
 # setter passord på bruker
-sudo smbpasswd -U <brukernavn>
+smbpasswd -U janmag
 # tester klient oppsett
-smbclient -U <brukenavn> -L localhost
+smbclient -U janmag -L localhost
+
+
 

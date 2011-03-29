@@ -143,7 +143,7 @@ chmod 644 /etc/ldap/ldap.conf
 SPORSMAL="Skriv inn fullstendig dc:"
 getInput 1
 if [ -z $INPUT_LOWER_CASE ]; then
-	DC='dc=atlas,dc=localdomain'
+	DC='dc=localdomain'
 else
 	DC=$INPUT_LOWER_CASE
 fi
@@ -188,12 +188,6 @@ slapindex
 chown -R openldap:openldap /var/lib/ldap
 /etc/init.d/slapd start
 
-# teste at ldap er oppe å kjører riktig
-#OPPE=`ldapsearch -x | grep cn=admin`
-#if [ -z $OPPE ] ; then
-#	echo "Her var det en feil i reindekseringen"	
-#	exit
-#fi
 
 ###########################################
 # Lager 2 ou'er: People og Group i ou.ldif
@@ -214,16 +208,11 @@ objectClass: organizationalUnit" >> /tmp/ou.ldif
 slapadd -c -v -l /tmp/ou.ldif
 /etc/init.d/slapd start
 
-#OPPE=`ldapsearch -x ou=people | grep 'numEntries:' | awk '{ print $3 }'`
-#if [ $OPPE < 1 ] ; then
-#	echo "Her har vi en feil at ou'er ikke ble lagt inn"
-#	exit
-#fi
 
 # Lager en testbruker (goofy) for at vi skal se at alt er i orden 
 
 touch /tmp/goofy.ldif
-#echo $DC
+
 echo "
 dn: cn=goofy,ou=group,$DC
 cn: goofy
@@ -246,11 +235,6 @@ homeDirectory: /home/goofy" >> /tmp/goofy.ldif
 
 ldapadd -c -x -D cn=admin,$DC -W -f /tmp/goofy.ldif
 
-#OPPE=`ldapsearch -x uid=goofy | grep 'numEntries:' | awk '{ print $3 }'`
-#if [ $OPPE < 1 ] ; then
-#	echo "Feil, testbrukeren crasha"
-#	exit
-#fi
 
 ###############
 # NSS og PAM
@@ -297,4 +281,7 @@ sed -i '/pam_unix.so/d' /etc/pam.d/common-session
 echo "
 session sufficient      pam_ldap.so
 session required        pam_unix.so try_first_pass" >> /etc/pam.d/common-session
+
+# Fikser "boot"-problemet
+sed -i '/#bind_policy hard/ c\bind_policy soft' /etc/libnss-ldap.conf
 
