@@ -24,6 +24,7 @@
 # 3.2 Fjerne testbruker
 # 4. Legge til postconf informasjon 
 # 5. Sjekke testrutiner som er kommentert ut
+# 6. Legge til soft policy
 ##
 
 ###############

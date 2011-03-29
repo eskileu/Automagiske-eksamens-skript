@@ -16,6 +16,8 @@ Anbefalt innstallasjonsrekkefølge:
 
 - dhcp3
 
+- squid
+
 - mysql
 	- må sette root-passord under innstallasjonen
 

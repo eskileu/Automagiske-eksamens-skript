@@ -36,7 +36,7 @@ iptables -t mangle -F
 iptables -X
  
 # Portforwarding
-# iptables -t nat -A PREROUTING -i eth0 -p tcp --dport 80 -j DNAT --to <ip_adresse:port>
+iptables -t nat -A PREROUTING -i eth1 -p tcp --dport 80 -j REDIRECT --to-port 3128
 # iptables -A INPUT -p tcp -m state --state NEW --dport 80 -i eth0 -j ACCEPT
  
 # Pakkeforwarding
@@ -54,4 +54,3 @@ update-rc.d fw-script.sh defaults
 
 # Disable ipv6 slik at nettverksinterfacen ikke starter opp med dette
 
-# echo net.ipv6.conf.all.disable_ipv6=1 > /etc/sysctl.d/disableipv6.conf

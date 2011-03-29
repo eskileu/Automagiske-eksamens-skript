@@ -2,10 +2,11 @@
 
 ## 
 # Automatisert squid3 installasjon
-# Rev. 0.1 (1.0 er det samme som fult operativ)
+# Rev. 0.15 (1.0 er det samme som fult operativ)
 # -------------
 # 0.1 Kommet i gang i det minste. 
 # Må få orndet med kvalitetssjekk av input.
+# 0.15 Fiksa noen småting på echo av input og conf fil
 # -------------
 # 
 #
@@ -162,34 +163,36 @@ touch denied_ads.acl denied_domains.acl denied_filetypes.acl
 ##
 # Fyll acl filer med test innhold
 ##
-echo ".vg.no
+echo '.vg.no
 .sex.com
 .hackers.com
 .xemacs.org
-.stormtroopers.no" > /etc/squid3/acl/denied_domains.acl
+.stormtroopers.no' > /etc/squid3/acl/denied_domains.acl
 
-echo "/adv/.*\.gif$
+echo '/adv/.*\.gif$
 /[Aa]ds/.*\.gif$
 /[Aa]d[Pp]ix/
 /[Aa]d[Ss]erver
 /[Aa][Dd]/.*\.[GgJj][IiPp][FfGg]$
-/[Bb]annerads/" > /etc/squid3/acl/denied_ads.acl
+/[Bb]annerads/' > /etc/squid3/acl/denied_ads.acl
 
-echo "\.(exe)$
+echo '\.(exe)$
 \.(zip)$
 \.(mp3)$
-\.(avi)$" > /etc/squid3/acl/denied_filetypes.acl
+\.(avi)$' > /etc/squid3/acl/denied_filetypes.acl
 
 ##
 # Konfigurasjon squid3
 ##
-cp /etc/squid3/squid.conf /etc/squid3/squid.conf.old
+mv /etc/squid3/squid.conf /etc/squid3/squid.conf.old
 
 echo "http_port $INTERNIP:$PORT transparent
 client_netmask $NETTMASKE
 http_port $PORT transparent
 acl our_networks src $CIDR
-acl localnet src 127.0.0.1/255.255.255.255
+acl localnet src 127.0.0.1/255.255.255.255" > /etc/squid3/squid.conf
+
+echo '
 acl denied_domains dstdomain "/etc/squid3/acl/denied_domains.acl"
 acl filetypes urlpath_regex -i "/etc/squid3/acl/denied_filetypes.acl"
 acl url_ads url_regex "/etc/squid3/acl/denied_ads.acl"
@@ -202,10 +205,10 @@ http_access allow localnet
 cache_mem 100 MB
 cache_dir ufs /var/spool/squid3 300 16 256
 access_log /var/log/squid3/access.log squid
-coredump_dir /var/spool/squid3" > /etc/squid3/squid.conf
+coredump_dir /var/spool/squid3' >> /etc/squid3/squid.conf
 
 # Restart av squid3
-/etc/init.d/squid3 rnanoestart
+/etc/init.d/squid3 restart
 
 echo '
 Ferdig!!
