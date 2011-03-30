@@ -120,7 +120,7 @@ pause "Om du er sikker trykk ENTER eller avbryt med CTRL+C"
 # ACTION!
 ###########
 
-apt-get install -qy samba samba-doc
+apt-get install -qy samba samba-doc smbfs
 
 apt-get install -qy smbclient
 
