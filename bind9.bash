@@ -105,7 +105,7 @@ if (( $UID != 0 )); then
 fi
 
 # Vi er avhengig av nett til installasjonene så vi gjør en pingtest
-if ping -c 1 192.168.0.1 > /dev/null; then
+if ping -c 1 vg.no > /dev/null; then
 	echo "PING: OK"
 else
 	REDTEMP=$(tput setaf 1)
