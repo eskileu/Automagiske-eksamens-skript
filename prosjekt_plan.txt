@@ -1,5 +1,13 @@
 Dokumentet skal beskrive hva som gjøres ved hver innstallasjon som krever input, og skal fungere som en plan for rekkefølge vi ser for oss i innstallasjonen.
 
+Hva kreves?
+	- server må ha følgende oppsett:
+		- Debian 5.08
+		- ikke grafisk (optional)
+		- 2 nettverkskort (eth0-eksternt og eth1-internt)
+
+	- klient kan være
+
 Anbefalt innstallasjonsrekkefølge:
 
 - sudo
@@ -7,10 +15,10 @@ Anbefalt innstallasjonsrekkefølge:
 - openssh-server
 
 - openldap
-	- useradd script
-	- default gruppe og bruker ou
+	(- useradd script		)
+	(- default gruppe og bruker ou	)
 
-- ruting av ip-pakker (gateway)
+- gateway
 
 - dns
 
@@ -48,3 +56,6 @@ Anbefalt innstallasjonsrekkefølge:
 		- .promailrc (fil)
 
 - backuppc
+
+- fail2ban
+
