@@ -113,7 +113,7 @@ echo "1" > /proc/sys/net/ipv4/ip_forward' >> /etc/init.d/fw-script.sh
 /etc/init.d/fw-script.sh
 
 SPORSMAL="Skal du benytte squid? (1 for SQUID og 2 for ikke SQUID)"
-getInput 2
+getInput 1
 if (( $INPUT_LOWER_CASE == 1)); then
 	SPORSMAL="Skriv inn portnummer på squid:"
 	getInput 1
