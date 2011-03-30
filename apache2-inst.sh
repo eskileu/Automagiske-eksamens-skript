@@ -159,6 +159,7 @@ a2enmod ssl
 a2ensite default-ssl
 a2enmod userdir
 mkdir /etc/skel/public_html
+cd /etc/ssl/private
 make-ssl-cert generate-default-snakeoil
 
 ##############
