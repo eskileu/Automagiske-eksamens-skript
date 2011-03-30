@@ -156,9 +156,9 @@ apt-get install -qy php5
 
 # Aktiver støtte for https sider. Better safe then sorry :)
 a2enmod ssl
+a2ensite default-ssl
 a2enmod userdir
 mkdir /etc/skel/public_html
-a2ensite default-ssl
 make-ssl-cert generate-default-snakeoil
 
 ##############
