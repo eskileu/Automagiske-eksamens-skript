@@ -212,9 +212,9 @@ coredump_dir /var/spool/squid3' >> /etc/squid3/squid.conf
 
 echo '
 Ferdig!!
-Du må fortsatt sette iptables regelen. (Eskil vi setter den i gateway scriptet, eller? :))
+Du må fortsatt sette iptables regelen. (Eskil vi setter den i gateway scriptet, eller? :)) (OK, Jan Egil)
 Eksempel:
-iptables -t nat -A PREROUTING -i eth1 -p tcp --dport 80 -j REDIRECT --to-port $PORT
+iptables -t nat -A PREROUTING -i eth1 -p tcp --dport 80 -j REDIRECT --to ${INTERNIP}.${PORT}
 '
 
 
