@@ -7,6 +7,7 @@
 # 0.1 Kommet i gang i det minste. 
 # Må få orndet med kvalitetssjekk av input.
 # 0.15 Fiksa noen småting på echo av input og conf fil
+# 0.20 Kjør på med tester!
 # -------------
 # 
 #
