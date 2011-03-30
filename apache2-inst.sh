@@ -133,7 +133,7 @@ MYSQLROOTPASS=""
 
 SPORSMAL="Angi LAN med CIDR notasjon (192.168.10.0/24) "
 getInput 1
-NETT_I_CIDR=
+NETT_I_CIDR=$INPUT
 
 SPORSMAL="Skriv inn ønsket rootpassord for mysql: "
 getInput 1
