@@ -22,7 +22,7 @@ LIGHTCYANTEMP=$(tput bold ; tput setaf 6)
 RESETTEMP=$(tput sgr0)
 
 # Vi er avhengig av nett til installasjonene så vi gjør en pingtest
-if ping -c 1 158.38.48.10 > /dev/null; then
+if ping -c 1 vg.no > /dev/null; then
 	echo "PING: OK"
 else
 	echo "PING: ${REDTEMP}FAILED${RESETTEMP}"
