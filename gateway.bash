@@ -4,15 +4,16 @@
 # Installasjonsscript for sette opp dual homed maskin
 # som gateway, med nat'ing og forwarding
 #
-## Rev. 0.2beta (1.0 er det samme som fult operativ)
+## Rev. 0.3 (1.0 er det samme som fult operativ)
 # -------------
 # 0.1 Skjelettet opprettet. Ingen ting lagt til ennå. 
 # Lagt til sjekk om det er nett på maskinen. Ingen grunn til å kjøre i gang
 # installasjoner uten nett.
 # Må få oversikt over nødvendige variabler til konfigurasjonen.
 # 0.2 Fullført til betatesting
+# 0.3 Lagt til spørring og redigering for squid port nummer
 # -------------
-# Last edit: Sat 26 Mar 2011
+# Last edit: Wed 30 Mar 2011
 #
 # TODO:
 # 1. Legge til disabling av ipv6
@@ -124,15 +125,11 @@ if (( $INPUT_LOWER_CASE == 1)); then
 	fi
 
 	sed -i "s/SQUIDPORT/"$SQUIDPORT"/g" /etc/init.d/fw-script.sh
-	sed -i '14/#/d' /etc/init.d/fw-script.sh
+	sed -i '13 s/^[#]\{1\}//g' /etc/init.d/fw-script.sh
 
+	/etc/init.d/fw-script.sh
 else
 	echo "Du har valgt å ikke implementere SQUID i brannmuren nå"
 fi
 
-
-
-
-
-# Disable ipv6 slik at nettverksinterfacen ikke starter opp med dette
-
+exit
