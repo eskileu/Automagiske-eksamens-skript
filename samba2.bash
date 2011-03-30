@@ -425,6 +425,8 @@ sed -i "s/LDAPSUFFIX/"$LDAPSUFFIX"/g" /etc/smbldap-tools/smbldap.conf
 sed -i "s/WORKGROUP/"$WORKGROUP"/g" /etc/smbldap-tools/smbldap.conf
 sed -i "s/NETBIOSNAME/"$NETBIOSNAME"/g" /etc/smbldap-tools/smbldap.conf
 
+
+
 # setter passord på bruker
 # smbpasswd -U janmag
 # tester klient oppsett

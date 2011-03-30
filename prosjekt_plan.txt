@@ -26,27 +26,14 @@ Anbefalt innstallasjonsrekkefølge:
 
 - squid
 
-- mysql
-	- må sette root-passord under innstallasjonen
-
 - apache2
 	- hva trenger vi av post-konfigurasjon her?
 		- keepalive = off
 		- https/ssl?
 
-- php5
-	- restart apache2
-
-
-- phpmyadmin
-
-- phpldapadmin ?
+- samba
 
 - email
-
-- wordpress
-
-- samba
 
 - skel
 	- sette en default skeleton for brukeren
