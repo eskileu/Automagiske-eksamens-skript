@@ -118,4 +118,34 @@ pause "Om du er sikker trykk ENTER eller avbryt med CTRL+C"
 # ACTION!
 #############
 
-apt-get install -qy 
+HTPASSWD=`echo "Skriv inn htpasswd for brukeren backuppc"`
+
+echo "Du trenger følgende informasjon klar:
+- Domenenavn"
+
+# installerer pakkene vi trenger
+apt-get install -qy backuppc rsync libfile-rsyncp-perl par2 smbfs
+
+echo "Lager et htpasswd for brukeren backupp"
+htpasswd /etc/backuppc/htpasswd backuppc
+
+echo "Lag passord for brukeren backuppc"
+passwd backuppc
+
+# Lager sertifikater
+echo "Vi logger inn med backuppc bruker. Skriv inn følgende etter at du får shell prompt:
+ssh-keygen -t rsa
+Deretter kan du exit det shellet og du er ferdig."
+
+su backuppc
+
+IPKLIENT=`Skriv inn ip-adressen til klienten:`
+scp /var/lib/backuppc/.ssh/id_rsa.pub $IPKLIENT:/root/.ssh/authorized_keys2
+
+exit
+
+
+
+
+
+
