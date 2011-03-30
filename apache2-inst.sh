@@ -133,7 +133,7 @@ MYSQLROOTPASS=""
 
 SPORSMAL="Angi LAN med CIDR notasjon (192.168.10.0/24) "
 getInput 1
-NETT_I_CIDR=
+NETT_I_CIDR=$INPUT
 
 SPORSMAL="Skriv inn ønsket rootpassord for mysql: "
 getInput 1
@@ -156,9 +156,10 @@ apt-get install -qy php5
 
 # Aktiver støtte for https sider. Better safe then sorry :)
 a2enmod ssl
+a2ensite default-ssl
 a2enmod userdir
 mkdir /etc/skel/public_html
-a2ensite default-ssl
+cd /etc/ssl/private
 make-ssl-cert generate-default-snakeoil
 
 ##############
