@@ -52,5 +52,9 @@ echo "1" > /proc/sys/net/ipv4/ip_forward' >> /etc/init.d/fw-script.sh
 
 update-rc.d fw-script.sh defaults
 
+chmod +x /etc/init.d/fw-script
+
+/etc/init.d/fw-script
+
 # Disable ipv6 slik at nettverksinterfacen ikke starter opp med dette
 
