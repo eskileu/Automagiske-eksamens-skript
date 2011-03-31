@@ -1,0 +1,42 @@
+Svarfil for automatisering av innstallasjon
+Syntaxen blir UNIK_NAVN = SVAR - Kommentar,utfyllende opplysninger
+Dersom du skal ha lengre strenger så må dette settes i ""
+
+# openldap.sh
+DC = (ldap suffix)
+IP = (intern ip)
+
+# gateway.sh
+SQUIPORT = (portnummer på squid innstallasjon)
+
+# bind9.sh
+DOMAIN = (domenenavn)
+IPREV = (reversert ip addresse, subnetta)
+
+
+# dhcp3.sh
+DOMAIN = (domenet til intern nettet)
+DNSOTHER = (ip adresse på dns tjener)
+SUBNET = (subnettet til intern nett)
+NETMASK = (netmaska til intern nettet)
+RANGE_START = (første ip adresse i dhcp range)
+RANGE_STOP = (siste ip adresse i dhcp range)
+ROUTER_IP = (ip adresse til ruter på intern nett)
+
+# squid.sh
+INTERNIP= (ip adresse på internt nett)
+PORT= (portnummer på squid tjeneren)
+NETTMASKE= (nettmaske for logging)
+CIDR= (intern nett på CIDR form)
+
+# apache2.sh
+
+
+# samba.sh
+
+# email.sh
+
+# backuppc.sh
+
+# fail2ban.sh
+

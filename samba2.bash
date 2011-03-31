@@ -427,11 +427,10 @@ sed -i "s/WORKGROUP/"$WORKGROUP"/g" /etc/smbldap-tools/smbldap.conf
 sed -i "s/NETBIOSNAME/"$NETBIOSNAME"/g" /etc/smbldap-tools/smbldap.conf
 
 
+# Systemkonotoer integreres i ldap
+echo "Vi henter systemkontoene over fra lokalt system til ldap"
+smbldap-populate -e populate.ldif
 
-# setter passord på bruker
-# smbpasswd -U janmag
-# tester klient oppsett
-# smbclient -U janmag -L localhost
-
+smbldap-populate
 
 
