@@ -1,10 +1,10 @@
 Svarfil for automatisering av innstallasjon
 Syntaxen blir UNIK_NAVN = SVAR - Kommentar,utfyllende opplysninger
-Dersom du skal ha lengre strenger så må dette settes i ""
+Dersom du skal ha lengre strenger så må dette settes med kommentarer etter :
 
 # openldap.sh
-DC = (ldap suffix)
-IP = (intern ip)
+DC = :(ldap suffix)
+IP = :(intern ip)
 
 # gateway.sh
 SQUIPORT = (portnummer på squid innstallasjon)
@@ -24,12 +24,27 @@ RANGE_STOP = (siste ip adresse i dhcp range)
 ROUTER_IP = (ip adresse til ruter på intern nett)
 
 # squid.sh
-INTERNIP= (ip adresse på internt nett)
-PORT= (portnummer på squid tjeneren)
-NETTMASKE= (nettmaske for logging)
-CIDR= (intern nett på CIDR form)
+INTERNIP = (ip adresse på internt nett)
+PORT = (portnummer på squid tjeneren)
+NETTMASKE = (nettmaske for logging)
+CIDR = (intern nett på CIDR form)
 
 # apache2.sh
+NETT_I_CIDR=
+MYSQLROOTPASS=
+
+# samba.sh
+LDAPSUFFIX = (fullstendig ldapsuffix)
+WORKGROUP = (sambadomene)
+NETBIOSNAME = (maskinnavn på tjeneren)
+LDAPPASSWORD = (ldap passord til cn=admin...)
+PASSORD = (ldap passord til root)
+
+# epost.sh
+HOSTNAVN =
+DOMENE =
+HOSTIP =
+EKSTERNT_INTERFACE =
 NETT_I_CIDR= (Nettadressen med CIDR notasjon)
 MYSQLROOTPASS= (Trenger denne for at wordpress databasen skal opprettes.)
 
@@ -46,6 +61,8 @@ HOSTIP= (Ekstern IP)
 EKSTERNT_INTERFACE= (eth0 feks)
  
 # backuppc.sh
+HTPASSWD= (htpasswd til backuppc brukeren)
+IPKLIENT= (ip-addresse til klienten som skal tas backup av
 
 # fail2ban.sh
-
+# brannmur.sh
