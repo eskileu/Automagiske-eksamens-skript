@@ -38,8 +38,13 @@ LDAPSUFFIX= (Full bane i ldapsyntaks. dc=example,dc=no)
 WORKGROUP (Domenet som windowsklienter skal melde seg inn i. Må ikke blandes med domenenavnet til tjeneren.)
 NETBIOSNAME (Maskinnavnet til tjeneren satt i smb.conf)
 LDAPPASSWORD (Et passord)
-# email.sh
 
+# email.sh
+HOSTNAVN= (Navnet som blir satt under installasjon eller navnet man har endret til etter installasjon )
+DOMENE= (tihlde.org feks)   
+HOSTIP= (Ekstern IP)   
+EKSTERNT_INTERFACE= (eth0 feks)
+ 
 # backuppc.sh
 
 # fail2ban.sh
