@@ -419,6 +419,7 @@ mailDomain="NETBIOSNAME.localdomain"
 # SMBLDAP-TOOLS Configuration (default are ok for a RedHat)
 
 # Allows not to use smbpasswd
+with_smbpasswd="0"
 smbpasswd="/usr/bin/smbpasswd"' >> /etc/smbldap-tools/smbldap.conf
 
 sed -i "s/LDAPSUFFIX/"$LDAPSUFFIX"/g" /etc/smbldap-tools/smbldap.conf
