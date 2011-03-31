@@ -2,67 +2,34 @@ Svarfil for automatisering av innstallasjon
 Syntaxen blir UNIK_NAVN = SVAR - Kommentar,utfyllende opplysninger
 Dersom du skal ha lengre strenger så må dette settes med kommentarer etter :
 
-# openldap.sh
-DC = :(ldap suffix)
-IP = :(intern ip)
+# Nettverksinformasjon
+INTERN_IP
+EKSTERN_IP
+EKSTERN_INTERFACE
+IP_REV
+DNS_IP
+RANGE_START
+RANGE_STOP
+ROUTER_IP
+INTERN_CIDR
+SAMBA_DOMAIN
+NETBIOS_NAME
+DOMAIN_FULL
 
-# gateway.sh
-SQUIPORT = (portnummer på squid innstallasjon)
+SUBNET_DHCP
+NETMASK_DHCP
 
-# bind9.sh
-DOMAIN = (domenenavn)
-IPREV = (reversert ip addresse, subnetta)
+# Openldap info
+LDAP_SUFFIX = 
+LDAP_PWD_ADMIN
+LDAP_PWD_ROOT
 
+SQUID_PORT
+NETMASK_SQUID
 
-# dhcp3.sh
-DOMAIN = (domenet til intern nettet)
-DNSOTHER = (ip adresse på dns tjener)
-SUBNET = (subnettet til intern nett)
-NETMASK = (netmaska til intern nettet)
-RANGE_START = (første ip adresse i dhcp range)
-RANGE_STOP = (siste ip adresse i dhcp range)
-ROUTER_IP = (ip adresse til ruter på intern nett)
+MYSQL_ROOT_PASS
+MYSQL_ROOT_PWD
 
-# squid.sh
-INTERNIP = (ip adresse på internt nett)
-PORT = (portnummer på squid tjeneren)
-NETTMASKE = (nettmaske for logging)
-CIDR = (intern nett på CIDR form)
+HTPASSWD
+IP_CLIENT_BACKUP
 
-# apache2.sh
-NETT_I_CIDR=
-MYSQLROOTPASS=
-
-# samba.sh
-LDAPSUFFIX = (fullstendig ldapsuffix)
-WORKGROUP = (sambadomene)
-NETBIOSNAME = (maskinnavn på tjeneren)
-LDAPPASSWORD = (ldap passord til cn=admin...)
-PASSORD = (ldap passord til root)
-
-# epost.sh
-HOSTNAVN =
-DOMENE =
-HOSTIP =
-EKSTERNT_INTERFACE =
-NETT_I_CIDR= (Nettadressen med CIDR notasjon)
-MYSQLROOTPASS= (Trenger denne for at wordpress databasen skal opprettes.)
-
-# samba.sh
-LDAPSUFFIX= (Full bane i ldapsyntaks. dc=example,dc=no)
-WORKGROUP (Domenet som windowsklienter skal melde seg inn i. Må ikke blandes med domenenavnet til tjeneren.)
-NETBIOSNAME (Maskinnavnet til tjeneren satt i smb.conf)
-LDAPPASSWORD (Et passord)
-
-# email.sh
-HOSTNAVN= (Navnet som blir satt under installasjon eller navnet man har endret til etter installasjon )
-DOMENE= (tihlde.org feks)   
-HOSTIP= (Ekstern IP)   
-EKSTERNT_INTERFACE= (eth0 feks)
- 
-# backuppc.sh
-HTPASSWD= (htpasswd til backuppc brukeren)
-IPKLIENT= (ip-addresse til klienten som skal tas backup av
-
-# fail2ban.sh
-# brannmur.sh
