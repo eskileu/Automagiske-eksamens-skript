@@ -34,7 +34,10 @@ NETT_I_CIDR= (Nettadressen med CIDR notasjon)
 MYSQLROOTPASS= (Trenger denne for at wordpress databasen skal opprettes.)
 
 # samba.sh
-
+LDAPSUFFIX= (Full bane i ldapsyntaks. dc=example,dc=no)
+WORKGROUP (Domenet som windowsklienter skal melde seg inn i. Må ikke blandes med domenenavnet til tjeneren.)
+NETBIOSNAME (Maskinnavnet til tjeneren satt i smb.conf)
+LDAPPASSWORD (Et passord)
 # email.sh
 
 # backuppc.sh
