@@ -30,7 +30,8 @@ NETTMASKE= (nettmaske for logging)
 CIDR= (intern nett på CIDR form)
 
 # apache2.sh
-
+NETT_I_CIDR= (Nettadressen med CIDR notasjon)
+MYSQLROOTPASS= (Trenger denne for at wordpress databasen skal opprettes.)
 
 # samba.sh
 
