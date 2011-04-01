@@ -4,33 +4,86 @@
 # Kun et start dokument. Må utvides MYE!
 ##
 
-PATH=/usr/sbin:/sbin:/bin:/usr/bin
+# Banen til iptalbes
+IPT="/sbin/iptables"
 
-echo "Skript kjørt"
-# Slette all regler
-iptables -F
-iptables -t nat -F
-iptables -t mangle -F
-iptables -X
+# WAN data
+EKST_IFACE="eth0"
+EKST_IP="158.38.56.89"
+EKST_CIDR="158.38.56.0/24"
 
-# Lukk en del porter for den eksterne verdenen
-iptables -A INPUT -i eth0 -p tcp -m tcp --dport 138 -j DROP
-iptables -A INPUT -i eth0 -p tcp -m tcp --dport 389 -j DROP
-iptables -A INPUT -i eth0 -p tcp -m tcp --dport 445 -j DROP
-iptables -A INPUT -i eth0 -p udp -m udp --dport 137 -j DROP
-iptables -A INPUT -i eth0 -p tcp -m tcp --dport 139 -j DROP
-# Squid the shit out of it.
-iptables -t nat -A PREROUTING -i eth1 -p tcp --dport 80 -j DNAT --to 192.168.145.1:3128
+# LAN data
+INT_IFACE="eth1"
+INT_IP="192.168.145.1"
+INT_IP="192.168.145.0/24"
 
-# iptables -A INPUT -p tcp -m state --state NEW --dport 80 -i eth0 -j ACCEPT
+# locahost data
+LO_IFACE="lo"
+LO_IP="127.0.0.1"
+
+echo "Rensker opp i iptables"
+# Reset Default Policies
+$IPT -P INPUT ACCEPT
+$IPT -P FORWARD ACCEPT
+$IPT -P OUTPUT ACCEPT
+$IPT -t nat -P PREROUTING ACCEPT
+$IPT -t nat -P POSTROUTING ACCEPT
+$IPT -t nat -P OUTPUT ACCEPT
+$IPT -t mangle -P PREROUTING ACCEPT
+$IPT -t mangle -P OUTPUT ACCEPT
+
+# Flush all rules
+$IPT -F
+$IPT -t nat -F
+$IPT -t mangle -F
+
+# Erase all non-default chains
+$IPT -X
+$IPT -t nat -X
+$IPT -t mangle -X
+
+echo "Åpner porter som skal benyttes"
+##
+# Åpne porter til tjenester. 
+##
+# Apache
+# $IPT -A INPUT -p tcp --dport 80 -j ACCEPT  # http
+# $IPT -A INPUT -p tcp --dport 443 -j ACCEPT  # https
+
+# Epost
+# $IPT -A INPUT -p tcp --dport 25 -j ACCEPT   # smtp
+# $IPT -A INPUT -p tcp --dport 465 -j ACCEPT  # smtp-ssl
+# $IPT -A INPUT -p tcp --dport 110 -j ACCEPT  # pop3
+# $IPT -A INPUT -p tcp --dport 143 -j ACCEPT  # imap
+# $IPT -A INPUT -p tcp --dport 993 -j ACCEPT  # imap-ssl
+# $IPT -A INPUT -p tcp --dport 995 -j ACCEPT  # pop3-ssl
+
+# DNS
+# $IPT -A INPUT -p tcp --dport 53 -j ACCEPT   # DNS over tcp
+# $IPT -A INPUT -p tcp --dport 53 -j ACCEPT   # DNS over udp
+
+# Mysql
+# $IPT -A INPUT -p tcp --dport 3306 -j ACCEPT   # Mysql
+
+# SSH
+# $IPT -A INPUT -p tcp --dport 22 -j ACCEPT   # ssh
+
+# Flytt alle tcp pakker på port 80 til eth1 på port 3128 (Squid)
+$IPT -t nat -A PREROUTING -i eth1 -p tcp --dport 80 -j DNAT --to 192.168.145.1:3128
+
+# $IPT -A INPUT -p tcp -m state --state NEW --dport 80 -i eth0 -j ACCEPT
 
 # Pakkeforwarding
-iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
-iptables -A FORWARD -i eth1 -j ACCEPT
+$IPT -t nat -A POSTROUTING -o eth0 -j MASQUERADE
+$IPT -A FORWARD -i eth1 -j ACCEPT
 
 # Alltid akseptere loopback
-iptables -A INPUT -i lo -j ACCEPT
+$IPT -A INPUT -i lo -j ACCEPT
+
+# Blokker alt 
+$IPT -A INPUT -i $EKST_IFACE -j DROP
 
 # Sørge for pakkeforwarding
 echo "1" > /proc/sys/net/ipv4/ip_forward
 
+echo "Skript kjørt"
