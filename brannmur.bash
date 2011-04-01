@@ -68,17 +68,32 @@ echo "Åpner porter som skal benyttes"
 # SSH
 # $IPT -A INPUT -p tcp --dport 22 -j ACCEPT   # ssh
 
+$IPT -A OUTPUT -o $EKST_IFACE -m state --state ESTABLISHED,RELATED -j ACCEPT
+
 # Flytt alle tcp pakker på port 80 til eth1 på port 3128 (Squid)
-$IPT -t nat -A PREROUTING -i eth1 -p tcp --dport 80 -j DNAT --to 192.168.145.1:3128
+$IPT -t nat -A PREROUTING -i $INT_IFACE -p tcp --dport 80 -j DNAT --to 192.168.145.1:3128
 
 # $IPT -A INPUT -p tcp -m state --state NEW --dport 80 -i eth0 -j ACCEPT
 
 # Pakkeforwarding
 $IPT -t nat -A POSTROUTING -o $EKST_IFACE -j MASQUERADE
-$IPT -A FORWARD -i $INT_IFACE -j ACCEPT
+$IPT -A FORWARD -t filter -o eth0 -m state --state NEW,ESTABLISHED,RELATED -j ACCEPT
+$IPT -A FORWARD -t filter -i eth0 -m state --state ESTABLISHED,RELATED -j ACCEPT
+# $IPT -A FORWARD -i $INT_IFACE -j ACCEPT
 
 # Alltid akseptere loopback
 $IPT -A INPUT -i $LO_IFACE -j ACCEPT
+
+# Logging for feilsøk. Kommenter ut om du trenger log data for
+# å finne ut hvilke porter som må åpnes.
+#$IPT -A OUTPUT -j LOG
+#$IPT -A INPUT -j LOG
+#$IPT -A FORWARD -j LOG
+ 
+#$IPT -A OUTPUT -j DROP
+#$IPT -A INPUT -j DROP
+#$IPT -A FORWARD -j DROP
+
 
 # Blokker alt på det eksterne interfacet som ikke er åpnet over.
 $IPT -A INPUT -i $EKST_IFACE -j DROP
