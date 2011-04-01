@@ -74,13 +74,13 @@ $IPT -t nat -A PREROUTING -i eth1 -p tcp --dport 80 -j DNAT --to 192.168.145.1:3
 # $IPT -A INPUT -p tcp -m state --state NEW --dport 80 -i eth0 -j ACCEPT
 
 # Pakkeforwarding
-$IPT -t nat -A POSTROUTING -o eth0 -j MASQUERADE
-$IPT -A FORWARD -i eth1 -j ACCEPT
+$IPT -t nat -A POSTROUTING -o $EKST_IFACE -j MASQUERADE
+$IPT -A FORWARD -i $INT_IFACE -j ACCEPT
 
 # Alltid akseptere loopback
-$IPT -A INPUT -i lo -j ACCEPT
+$IPT -A INPUT -i $LO_IFACE -j ACCEPT
 
-# Blokker alt 
+# Blokker alt på det eksterne interfacet som ikke er åpnet over.
 $IPT -A INPUT -i $EKST_IFACE -j DROP
 
 # Sørge for pakkeforwarding
