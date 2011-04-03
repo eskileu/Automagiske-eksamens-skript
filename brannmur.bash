@@ -1,9 +1,17 @@
 #!/bin/bash
 
+echo "
 ##
-# Kun et start dokument. Må utvides MYE!
-##
+# Kun et start dokument for å beskytte serveren bedre.
+# Alle variabler er hardkoded inn og må endres slik at
+# de passer tjeneren.
+#
+#
+##"
 
+#############
+# VARIABLER #
+#############
 # Banen til iptalbes
 IPT="/sbin/iptables"
 
@@ -21,6 +29,10 @@ INT_IP="192.168.145.0/24"
 LO_IFACE="lo"
 LO_IP="127.0.0.1"
 
+
+############
+# FLUSHING #
+############
 echo "Rensker opp i iptables"
 # Reset Default Policies
 $IPT -P INPUT ACCEPT
@@ -42,10 +54,12 @@ $IPT -X
 $IPT -t nat -X
 $IPT -t mangle -X
 
+
 echo "Åpner porter som skal benyttes"
-##
-# Åpne porter til tjenester. 
-##
+###############
+# Åpne PORTER # 
+###############
+
 # Apache
 # $IPT -A INPUT -p tcp --dport 80 -j ACCEPT  # http
 # $IPT -A INPUT -p tcp --dport 443 -j ACCEPT  # https
@@ -75,13 +89,17 @@ $IPT -t nat -A PREROUTING -i $INT_IFACE -p tcp --dport 80 -j DNAT --to 192.168.1
 
 # $IPT -A INPUT -p tcp -m state --state NEW --dport 80 -i eth0 -j ACCEPT
 
-# Pakkeforwarding
+##############
+# NAT REGLER #
+##############
 $IPT -t nat -A POSTROUTING -o $EKST_IFACE -j MASQUERADE
-$IPT -A FORWARD -t filter -o eth0 -m state --state NEW,ESTABLISHED,RELATED -j ACCEPT
-$IPT -A FORWARD -t filter -i eth0 -m state --state ESTABLISHED,RELATED -j ACCEPT
+$IPT -A FORWARD -t filter -o $EKST_IFACE -m state --state NEW,ESTABLISHED,RELATED -j ACCEPT
+$IPT -A FORWARD -t filter -i $EKST_IFACE -m state --state ESTABLISHED,RELATED -j ACCEPT
 # $IPT -A FORWARD -i $INT_IFACE -j ACCEPT
 
-# Alltid akseptere loopback
+############
+# loopback #
+############
 $IPT -A INPUT -i $LO_IFACE -j ACCEPT
 
 # Logging for feilsøk. Kommenter ut om du trenger log data for
@@ -98,7 +116,11 @@ $IPT -A INPUT -i $LO_IFACE -j ACCEPT
 # Blokker alt på det eksterne interfacet som ikke er åpnet over.
 $IPT -A INPUT -i $EKST_IFACE -j DROP
 
-# Sørge for pakkeforwarding
+##
+# Aksepter pakkeforwarding av IPv4 pakker
+# Må ha denne om tjeneren skal stå som
+# GATEWAY
+##
 echo "1" > /proc/sys/net/ipv4/ip_forward
 
 echo "Skript kjørt"
