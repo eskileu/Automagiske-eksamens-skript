@@ -1,92 +1,256 @@
 #!/bin/bash
 
+#
+# Installasjonsscript for å sette opp pdc
+# vha Samba og OpenLDAP
+## Rev. 0.1 (1.0 er det samme som fult operativ)
+# -------------
+# 0.1 Skjelettet opprettet. Scriptet er hardkodet
+#  og fungerer nå med dette.
+# 0.2 Byttet ut hardkoding med variabler, testet hjemme
+#  trenger testing av andre. Samtidig kommentert script
+# -------------
+# Last edit: Thur 7 Apr 2011
+#
+# TODO:
+#
+##
+
+###############
+# Functions             
+###############
+
+# Rydde funksjon. Kun et skjelett må fylles
+function cleanUp()
+{
+	echo "RYDDER OPP ETTER DEG!!"
+	# LEGG INN KODE
+}
+
+# Pause funksjon som krever [ENTER] for å fortsette
+function pause(){
+	read -p "$*"
+}
+
+# Funksjon for kontroll av input.
+function getInput()
+{
+	if (( $1 == 1 )); then		## THIS MEANS ANY INPUT IS FINE !
+		VERIFY_INPUT=0
+	elif (( $1 == 2 )); then	## THIS MEANS YES/NO CONFIRMATION
+		VERIFY_INPUT=1
+	else
+		VERIFY_INPUT=2		## SELECTIVE INPUT
+	fi
+
+	loop=0
+	while (($loop != 1)); do
+
+		echo -n "< $SPORSMAL"
+		INPUT=""
+		read INPUT
+
+		# make a copy of the input in lower case
+		INPUT_LOWER_CASE=$(echo "$INPUT" | tr '[:upper:]' '[:lower:]')
+
+		# *always* exit if we get 'q'
+		if [ "$INPUT_LOWER_CASE" == "q" ]; then
+			cleanUp
+			exit
+		fi
+
+		# we don't want input that's empty unless it's for mode 1
+		if (( $VERIFY_INPUT != 0 )) && (( ${#INPUT} == 0 )); then
+			continue
+		fi
+
+		# if we're in mode 1 (verify == 0) we basicly just accept any input. 
+		# in this case we set loop=1 so the while exits
+		if (( $VERIFY_INPUT == 0 )); then
+			loop=1
+		elif (( $VERIFY_INPUT == 1 )); then
+			if [ "$INPUT_LOWER_CASE" == "y" ] || [ "$INPUT_LOWER_CASE" == "n" ]; then
+				loop=1
+			fi
+		else
+			## remember; $1 is input option, start at 2nd argument
+			for ((x=2; x!=$(($#+1)); x++)); do
+
+				if [ "$INPUT" == "${@:$x:1}" ]; then
+					loop=1
+				fi
+			done
+		fi
+	done
+}
+
+#####################################################
+# UNDER DETTE SKILLET KJØRER VI NOEN ENKLE TESTER
+# FOR Å SJEKKE AT VI KAN GÅ VIDERE I KONFIGURASJONEN
+#####################################################
+
+TEMP=$1 # Forbanna $1 funket dårlig direkte i if setningen....
+# Kommenter ut når rev er testet. 
+if [ "$TEMP" != "test" ]; then
+	echo "Det jobbes med scriptet for øyeblikket vennligst prøv igjen senere"
+	exit
+fi
+
+# Test for å sikre at kun root kan kjøre skriptet.
+if (( $UID != 0 )); then
+	echo "*!* FATAL: Can only be executed by root."
+	exit
+fi
+
+# Vi er avhengig av nett til installasjonene så vi gjør en pingtest
+if ping -c 1 vg.no > /dev/null; then
+	echo "PING: OK"
+else
+	REDTEMP=$(tput setaf 1)
+	RESETTEMP=$(tput sgr0)
+	echo "PING: ${REDTEMP}FAILED${RESETTEMP}"
+	echo "Skript avsluttet siden vi ikke har nett"
+	exit
+fi
+
+# Verifiser at brukeren virkelig vil gå videre
+pause "Om du er sikker trykk ENTER eller avbryt med CTRL+C"
+
+############################
+# HERE'S THE ACTION PART :)
+############################
+
+# Innstallere ldap daemon med tillegspakker
 apt-get install -qy slapd
 
 apt-get install -qy ldap-utils
 
 apt-get install -qy libnss-ldap
 
+# Rekonfigurerer for å sikre at detaljene stemmer
 dpkg-reconfigure slapd
 
 dpkg-reconfigure libnss-ldap
 
 dpkg-reconfigure libpam-ldap
 
+
 # redigere /etc/nsswitch.conf
 sed -i 's|compat|files ldap|g' /etc/nsswitch.conf
 
-# Konfigurere /etc/pam.d/common-account
 
+# Konfigurere /etc/pam.d/common-account
 sed -i '/pam_unix.so/d' /etc/pam.d/common-account
 echo "
 account sufficient      pam_ldap.so
 account required        pam_unix.so try_first_pass
 session required        pam_mkhomedir.so skel=/etc/skel/ umask=0022" >> /etc/pam.d/common-account
 
-# Konfigurere /etc/pam.d/common-auth
 
+# Konfigurere /etc/pam.d/common-auth
 sed -i '/pam_unix.so/d' /etc/pam.d/common-auth
 echo "
 auth    sufficient      pam_ldap.so
 auth    required        pam_unix.so nullok_secure try_first_pass" >> /etc/pam.d/common-auth
 
-# Konfigurere /etc/pam.d/common-password
 
+# Konfigurere /etc/pam.d/common-password
 sed -i '/pam_unix.so/d' /etc/pam.d/common-password
 echo "
 password   sufficient pam_ldap.so
 password   required   pam_unix.so nullok obscure" >> /etc/pam.d/common-password
 
-# Konfigurere /etc/pam.d/common-session
 
+# Konfigurere /etc/pam.d/common-session
 sed -i '/pam_unix.so/d' /etc/pam.d/common-session
 echo "
 session sufficient      pam_ldap.so
 session required        pam_unix.so try_first_pass" >> /etc/pam.d/common-session
 
+# Fjerne hash tegnet foran host i disse filene
 sed -i '21 s/^[#]\{1\}//g' /etc/pam_ldap.conf
 sed -i '21 s/^[#]\{1\}//g' /etc/libnss-ldap.conf
 
+# Restarter ldap daemon
 /etc/init.d/slapd restart
 
+LDAPSUFFIX=""
+SPORSMAL="Skriv inn ldap suffix:"
+getInput 1
+if [ -z $INPUT_LOWER_CASE ]; then
+	LDAPSUFFIX=BYTTUTDETTEMEDENGANG
+else
+	LDAPSUFFIX=$INPUT_LOWER_CASE
+fi
+
+# Oppretter initielle grupper i ldap db
 touch /tmp/initdb.ldif
 echo "
-dn: cn=nss,dc=testnett,dc=loqal,dc=no
+dn: cn=nss,$LDAPSUFFIX
 objectClass: organizationalRole
 objectClass: simpleSecurityObject
 cn: nss
 description: LDAP NSS user for user-lookups
 userPassword:: 0NSWVBUfXh4eHh4eHh4eHg=9
 
-dn: ou=People,dc=testnett,dc=loqal,dc=no
+dn: ou=People,$LDAPSUFFIX
 objectClass: organizationalUnit
 objectClass: top
 ou: People
 
-dn: ou=Group,dc=testnett,dc=loqal,dc=no
+dn: ou=Group,$LDAPSUFFIX
 objectClass: top
 objectClass: organizationalUnit
 ou: Group" >> /tmp/initdb.ldif
 
-ldapadd -x -W -a -D "cn=admin,dc=testnett,dc=loqal,dc=no" -f /tmp/initdb.ldif
+ldapadd -x -W -a -D "cn=admin,$LDAPSUFFIX" -f /tmp/initdb.ldif
 
-# starter på samba innstallasjonen
+##################################
+# Starter på SAMBA innstallasjonen
+##################################
 
 apt-get install -qy samba samba-doc
 
+# Oppretter fellesmappe
 mkdir /home/felles
 
+# Kopierer schema for samba inn i ldap db
 cp /usr/share/doc/samba-doc/examples/LDAP/samba.schema.gz /etc/ldap/schema/
 
+# Pakker ut filen
 gunzip /etc/ldap/schema/samba.schema.gz
 
+# Legger til schema til ldap konfigurasjonen
 sed -i '14 a\include        /etc/ldap/schema/samba.schema' /etc/ldap/slapd.conf
 
+# Restarter ldap daemon
 /etc/init.d/slapd restart
 
+# Oppretter netlogon mappe og profil mappe
 mkdir -p /home/samba/netlogon
 mkdir -p /home/samba/profiles
 
+
+# Legger inn /etc/samba/smb.conf
+
+SPORSMAL="Skriv inn navnet på maskinen:"
+getInput 1
+if [ -z $INPUT_LOWER_CASE ]; then
+	NETBIOS_NAME=BYTTUTDETTEMEDENGANG
+else
+	NETBIOS_NAME=$INPUT_LOWER_CASE
+fi
+
+
+SPORSMAL="Skriv inn navnet på samba domenet:"
+getInput 1
+if [ -z $INPUT_LOWER_CASE ]; then
+	SMBDOMENE=BYTTUTDETTEMEDENGANG
+else
+	SMBDOMENE=$INPUT_LOWER_CASE
+fi
+
+ 
 echo '
 #
 # Sample configuration file for the Samba suite for Debian GNU/Linux.
@@ -129,7 +293,7 @@ logon path = \\%N\profiles\%u
 logon drive = H:
 logon home = \\homeserver\%u\winprofile
 logon script = startup.cmd
-netbios name = testDeb
+netbios name = NETBIOS_NAME
 
 #Støtte for windows "user manager utility"
 add user script = /usr/sbin/smbldap-useradd -m "%u"
@@ -145,7 +309,7 @@ set primary group script = /usr/sbin/smbldap-usermod -g "%g" "%u"
 ## Browsing/Identification ###
 
 # Change this to the workgroup/NT-domain name your Samba server will part of
-   workgroup = killing
+   workgroup = SMBDOMENE
 
 # server string is the equivalent of the NT Description field
    server string = %h server (Samba %v)
@@ -191,18 +355,18 @@ set primary group script = /usr/sbin/smbldap-usermod -g "%g" "%u"
 ####### Authentication #######
 
 #DN for administratoren
-ldap admin dn = cn=admin,dc=testnett,dc=loqal,dc=no
+ldap admin dn = cn=admin,LDAPSUFFIX
 
 #Fellesdel av DN for brukernavn (tillegg til uid=navn)
-ldap suffix = ou=People,dc=hh,dc=aitel,dc=hist,dc=no
+ldap suffix = ou=People,LDAPSUFFIX
 
 #Fellesdel av DN for grupper
-ldap group suffix = ou=Group,dc=testnett,dc=loqal,dc=no
+ldap group suffix = ou=Group,LDAPSUFFIX
 
 #Synkroniser passordet i ldap med samba-passordet
 ldap passwd sync = yes
 
-ldap idmap suffix = ou=Idmap,dc=testnett,dc=loqal,dc=no
+ldap idmap suffix = ou=Idmap,LDAPSUFFIX
 
 # "security = user" is always a good idea. This will require a Unix account
 # in this server for every user accessing the server. See
@@ -391,9 +555,29 @@ writeable=yes
 ;   preexec = /bin/mount /cdrom
 ;   postexec = /bin/umount /cdrom' > /etc/samba/smb.conf
 
+sed -i "s/NETBIOS_NAME/"$NETBIOS_NAME"/g" /etc/samba/smb.conf
+sed -i "s/SMBDOMENE/"$SMBDOMENE"/g" /etc/samba/smb.conf
+sed -i "s/LDAPSUFFIX/"$LDAPSUFFIX"/g" /etc/samba/smb.conf
+
+# Restarter Samba
 /etc/init.d/samba restart
 
-smbpasswd -w 1234
+LDAPPASSWD=""
+SPORSMAL="Skriv inn ldap passordet:"
+getInput 1
+if [ -z $INPUT_LOWER_CASE ]; then
+	LDAPPASSWD=BYTTUTMEDENGANG
+else
+	LDAPPASSWD=$INPUT_LOWER_CASE
+fi
+
+# Setter passordet til root
+smbpasswd -w $LDAPPASSWD
+
+
+###########################
+# Innstallere smbldap-tools
+###########################
 
 apt-get install -qy smbldap-tools
 
@@ -408,16 +592,24 @@ echo '
 # master ldap for writing access and a slave ldap server for reading access
 # By default, we will use the same DN (so it will work for standard Samba
 # release)
-slaveDN="cn=admin,dc=testnett,dc=loqal,dc=no"
-slavePw="1234"
-masterDN="cn=admin,dc=testnett,dc=loqal,dc=no"
-masterPw="1234"' > /etc/smbldap-tools/smbldap_bind.conf
+slaveDN="cn=admin,LDAPSUFFIX"
+slavePw="LDAPPASSWD"
+masterDN="cn=admin,LDAPSUFFIX"
+masterPw="LDAPPASSWD"' > /etc/smbldap-tools/smbldap_bind.conf
 
+sed -i "s/LDAPSUFFIX/"$LDAPSUFFIX"/g" /etc/smbldap-tools/smbldap_bind.conf
+sed -i "s/LDAPPASSWD/"$LDAPPASSWD"/g" /etc/smbldap-tools/smbldap_bind.conf
+
+# sikrer /etc/smbldap-tools/smbldap_bind.conf slik at bare root kan lese denne
 chmod 600 /etc/smbldap-tools/smbldap_bind.conf
 
+# Henter inn SID
 LOCALSID=`net getlocalsid | mawk '{ print $6 }'`
 echo $LOCALSID
 
+
+# Oppretter /etc/smbldap-tools/smbldap.conf
+# Mye hardkodet her også
 echo "
 ##############################################################################
 #
@@ -476,7 +668,7 @@ clientkey="/etc/smbldap-tools/smbldap-tools.key"
 
 # LDAP Suffix
 # Ex: suffix=dc=IDEALX,dc=ORG
-suffix="dc=testnett,dc=loqal,dc=no"
+suffix="LDAPSUFFIX"
 
 # Where are stored Users
 # Ex: usersdn="ou=Users,dc=IDEALX,dc=ORG"
@@ -498,7 +690,7 @@ idmapdn="ou=Idmap,${suffix}"
 
 # Where to store next uidNumber and gidNumber available
 # sambaUnixIdPooldn="cn=NextFreeUnixId,${suffix}"
-sambaUnixIdPooldn="sambaDomainName=killing,${suffix}"
+sambaUnixIdPooldn="sambaDomainName=SMBDOMENE,${suffix}"
 
 # Default scope Used
 scope="sub"
@@ -591,17 +783,24 @@ mailDomain="aitel.hist.no"
 with_smbpasswd="0"
 smbpasswd="/usr/bin/smbpasswd"' >> /etc/smbldap-tools/smbldap.conf
 
+sed -i "s/LDAPSUFFIX/"$LDAPSUFFIX"/g" /etc/smbldap-tools/smbldap.conf
+sed -i "s/SMBDOMENE/"$SMBDOMENE"/g" /etc/smbldap-tools/smbldap.conf
 
+
+# Restarter Samba
 /etc/init.d/samba restart
 
+# Restarter ldap daemon
 /etc/init.d/slapd restart
 
+# Henter ut systemkonoter og legger dem i en ldif fil
 smbldap-populate -e populate.ldif
 
+# Importerer systemkontoene inn i ldap db
 smbldap-populate
 
+# testbruker fjerner før ver 1.0
 smbldap-useradd -a ole
 
+# setter passord på testbruker, fjernes før ver 1.0
 smbldap-passwd -a ole
-
-
