@@ -1,12 +1,13 @@
 #!/bin/bash
 
-#
+
 # Skript for å samle de ulike installasjonene.
 # Tilbyr en dialog hvro brukere kan velge hva de vil kjøre
 #
-## Rev. 0.05 (1.0 er det samme som fult operativ)
+## Rev. 0.06 (1.0 er det samme som fult operativ)
 # -------------
 # 0.05 Startet på grunn strukturen.
+# 0.06 Lagt til gateway installasjonen
 # -------------
 # Last edit: Thur 7 Apr 2011
 #
@@ -19,13 +20,13 @@
 # 6. TBA
 ##
 
-#if (( $UID != 0 )); then
-#	echo "*!* FATAL: Can only be executed by root."
-#	exit
-#fi
-#REDTEMP=$(tput setaf 1)
-#LIGHTCYANTEMP=$(tput bold ; tput setaf 6)
-#RESETTEMP=$(tput sgr0)
+if (( $UID != 0 )); then
+	echo "*!* FATAL: Can only be executed by root."
+	exit
+fi
+REDTEMP=$(tput setaf 1)
+LIGHTCYANTEMP=$(tput bold ; tput setaf 6)
+RESETTEMP=$(tput sgr0)
 
 #if type -p dialog; then
 #	DIALOG="$(type -p dialog) --backtitle Insta_Install_v0.05 --aspect 75"
@@ -34,21 +35,142 @@
 #	exit 1
 #fi
 #
-#if ping -c 1 158.38.48.10 > /dev/null; then
-#	echo "PING: OK"
-#else
-#	echo "PING: ${REDTEMP}FAILED${RESETTEMP}"
-#	echo "Skript avsluttet siden vi ikke har nett"
-#	exit
-#fi
+if ping -c 1 158.38.48.10 > /dev/null; then
+	echo "PING: OK"
+else
+	echo "PING: ${REDTEMP}FAILED${RESETTEMP}"
+	echo "Skript avsluttet siden vi ikke har nett"
+	exit
+fi
 
 TMPFIL="/tmp/`date +%N`.tmp"
 touch $TMPFIL
 INNHOLD=false
 
 
+
+############################
+#   -*-Input funksjon-*-   #     
+############################
+function getInput()
+{
+	if (( $1 == 1 )); then		## THIS MEANS ANY INPUT IS FINE !
+		VERIFY_INPUT=0
+	elif (( $1 == 2 )); then	## THIS MEANS YES/NO CONFIRMATION
+		VERIFY_INPUT=1
+	else
+		VERIFY_INPUT=2		## SELECTIVE INPUT
+	fi
+
+	loop=0
+	while (($loop != 1)); do
+
+		echo -n "< $SPORSMAL"
+		INPUT=""
+		read INPUT
+
+		# make a copy of the input in lower case
+		INPUT_LOWER_CASE=$(echo "$INPUT" | tr '[:upper:]' '[:lower:]')
+
+		# *always* exit if we get 'q'
+		if [ "$INPUT_LOWER_CASE" == "q" ]; then
+			cleanUp
+			exit
+		fi
+
+		# we don't want input that's empty unless it's for mode 1
+		if (( $VERIFY_INPUT != 0 )) && (( ${#INPUT} == 0 )); then
+			continue
+		fi
+
+		# if we're in mode 1 (verify == 0) we basicly just accept any input. 
+		# in this case we set loop=1 so the while exits
+		if (( $VERIFY_INPUT == 0 )); then
+			loop=1
+		elif (( $VERIFY_INPUT == 1 )); then
+			if [ "$INPUT_LOWER_CASE" == "y" ] || [ "$INPUT_LOWER_CASE" == "n" ]; then
+				loop=1
+			fi
+		else
+			## remember; $1 is input option, start at 2nd argument
+			for ((x=2; x!=$(($#+1)); x++)); do
+
+				if [ "$INPUT" == "${@:$x:1}" ]; then
+					loop=1
+				fi
+			done
+		fi
+	done
+}
+
+
+###################################
+#   -*-Installasjons metoder-*-   #     
+###################################
+
+#----GATEWAY----#
+instGateway(){
+        touch /etc/init.d/fw-script.sh
+
+        chmod +x /etc/init.d/fw-script.sh
+
+        update-rc.d fw-script.sh defaults
+
+        echo '
+        #!/bin/sh
+         
+        PATH=/usr/sbin:/sbin:/bin:/usr/bin
+         
+        # Slette all regler
+        iptables -F
+        iptables -t nat -F
+        iptables -t mangle -F
+        iptables -X
+         
+        # Portforwarding
+        # iptables -t nat -A PREROUTING -i eth1 -p tcp --dport 80 -j REDIRECT --to-port SQUIDPORT
+        # iptables -A INPUT -p tcp -m state --state NEW --dport 80 -i eth0 -j ACCEPT
+         
+        # Pakkeforwarding
+        iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
+        iptables -A FORWARD -i eth1 -j ACCEPT
+        iptables -A FORWARD -i eth2 -j ACCEPT
+         
+        # Alltid akseptere loopback
+        iptables -A INPUT -i lo -j ACCEPT
+         
+        # Sørge for pakkeforwarding
+        echo "1" > /proc/sys/net/ipv4/ip_forward' >> /etc/init.d/fw-script.sh
+
+        /etc/init.d/fw-script.sh
+
+        SPORSMAL="Skal du benytte squid? (1 for SQUID og 2 for ikke SQUID)"
+        getInput 1
+        if (( $INPUT_LOWER_CASE == 1)); then
+	        SPORSMAL="Skriv inn portnummer på squid:"
+	        getInput 1
+	        if [ -z $INPUT_LOWER_CASE ]; then
+		        SQUIDPORT=3128
+	        else
+		        SQUIDPORT=$INPUT_LOWER_CASE
+	        fi
+
+	        sed -i "s/SQUIDPORT/"$SQUIDPORT"/g" /etc/init.d/fw-script.sh
+	        sed -i '13 s/^[#]\{1\}//g' /etc/init.d/fw-script.sh
+
+	        /etc/init.d/fw-script.sh
+        else
+	        echo "Du har valgt å ikke implementere SQUID i brannmuren nå"
+        fi
+} # Slutt gateway
+
+
+###############################
+#    -*-DIALOG METODER-*-     #   
+###############################
+
 # Dialog metoden
-valg(){
+installasjonsValg(){
 
         dialog --backtitle "Automagisk Eksamens Skript" \
                 --title "Smørbrødlisten" \
@@ -69,9 +191,10 @@ valg(){
         clear
 }
 
+# Sjekk av filmetode
 sjekkFil(){
         #Kontroll på at TMPFIL ikke er tom
-        if [ -s $TMPFIL ]; then
+        if [ -s $1 ]; then
                 echo "Det er gjort valg fra listen"
                 INNHOLD=true
         else
@@ -79,10 +202,14 @@ sjekkFil(){
         fi 
 }
 
+# Les filen linje for linje metode
+# Avdekker på denne måten brukervalgene
+
 lesFil(){
         while read line ; do
                 if [ "$line" == "GATE" ]; then
                         echo "GATE valgt"
+                        instGateway
                 elif [ "$line" == "DNS" ]; then
                         echo "DNS valgt"
                 elif [ "$line" == "DHCP" ]; then
@@ -101,16 +228,21 @@ lesFil(){
         done < $TMPFIL
 }
 
+rydd(){
+        #Fjerner tmp filen som ble opprettet i /tmp
+        rm $TMPFIL
 
+        #Andre ting som må ryddes under her
+}
 
 
 ###############################
-#        -*-MAIN-*-           #   
+#-----------MAIN--------------#   
 ###############################
 
-valg            #Tilbyr installasjons valg
+installasjonsValg      #Tilbyr installasjons valg
 
-sjekkFil        #Sjekker filen med valgene i
+sjekkFil $TMPFIL       #Sjekker filen med valgene i
 
 #Kjører kun om det er gjort valg
 if ( $INNHOLD ) ; then
