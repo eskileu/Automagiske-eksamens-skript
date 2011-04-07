@@ -43,14 +43,9 @@ else
 	exit
 fi
 
-TMPFIL="/tmp/`date +%N`.tmp"
-touch $TMPFIL
-INNHOLD=false
-
-
-
 ############################
-#   -*-Input funksjon-*-   #     
+#   -*-Input funksjon-*-   #
+# Hentet fra Tihlde Drift  #     
 ############################
 function getInput()
 {
@@ -67,7 +62,7 @@ function getInput()
 
 		echo -n "< $SPORSMAL"
 		INPUT=""
-		read INPUT
+		read -t 60 INPUT <&1
 
 		# make a copy of the input in lower case
 		INPUT_LOWER_CASE=$(echo "$INPUT" | tr '[:upper:]' '[:lower:]')
@@ -109,7 +104,7 @@ function getInput()
 ###################################
 
 #----GATEWAY----#
-instGateway(){
+function instGateway(){
         touch /etc/init.d/fw-script.sh
 
         chmod +x /etc/init.d/fw-script.sh
@@ -164,6 +159,9 @@ instGateway(){
         fi
 } # Slutt gateway
 
+TMPFIL="/tmp/`date +%N`.tmp"
+touch $TMPFIL
+INNHOLD=false
 
 ###############################
 #    -*-DIALOG METODER-*-     #   
