@@ -11,6 +11,7 @@
 #  trenger testing av andre. Samtidig kommentert script
 # 0.3 Testet på nytt, fjernet invalid user root for å kunne
 #  melde win klienter inn i domenet
+# 0.4 lagt til indeksering
 # -------------
 # Last edit: Thur 7 Apr 2011
 #
@@ -224,6 +225,21 @@ gunzip /etc/ldap/schema/samba.schema.gz
 
 # Legger til schema til ldap konfigurasjonen
 sed -i '14 a\include        /etc/ldap/schema/samba.schema' /etc/ldap/slapd.conf
+
+# Legger til indeksering i ldap + logging
+sed -i '/loglevel        none/ c\loglevel	256' /etc/ldap/slapd.conf
+sed -i '86 a\index	uid          eq' /etc/ldap/slapd.conf
+sed -i '87 a\index	uidNumber          eq' /etc/ldap/slapd.conf
+sed -i '88 a\index	memberUID          eq' /etc/ldap/slapd.conf
+sed -i '89 a\index	uniqueMember          eq' /etc/ldap/slapd.conf
+sed -i '90 a\index	sambaSID          eq' /etc/ldap/slapd.conf
+sed -i '91 a\index	sambaDomainName          eq' /etc/ldap/slapd.conf
+
+# Reindekserer
+/etc/init.d/slapd stop
+slapindex
+chown -R openldap:openldap /var/lib/ldap
+/etc/init.d/slapd start
 
 # Restarter ldap daemon
 /etc/init.d/slapd restart
@@ -801,6 +817,9 @@ smbldap-populate -e populate.ldif
 
 # Importerer systemkontoene inn i ldap db
 smbldap-populate
+
+
+
 
 # testbruker fjerner før ver 1.0
 smbldap-useradd -a ole
