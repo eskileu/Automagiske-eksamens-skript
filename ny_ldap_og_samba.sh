@@ -9,6 +9,8 @@
 #  og fungerer nå med dette.
 # 0.2 Byttet ut hardkoding med variabler, testet hjemme
 #  trenger testing av andre. Samtidig kommentert script
+# 0.3 Testet på nytt, fjernet invalid user root for å kunne
+#  melde win klienter inn i domenet
 # -------------
 # Last edit: Thur 7 Apr 2011
 #
@@ -385,7 +387,7 @@ ldap idmap suffix = ou=Idmap,LDAPSUFFIX
    obey pam restrictions = yes
 
 ;   guest account = nobody
-   invalid users = root
+;   invalid users = root
 
 # This boolean parameter controls whether Samba attempts to sync the Unix
 # password with the SMB password when the encrypted SMB password in the
@@ -745,13 +747,13 @@ defaultMaxPasswordAge="99"
 # Ex: \\My-PDC-netbios-name\homes\%U
 # Just set it to a null string if you want to use the smb.conf logon home
 # directive and/or disable roaming profiles
-userSmbHome="\\testDeb\homes\%U"
+userSmbHome="\\NETBIOS_NAME\homes\%U"
 
 # The UNC path to profiles locations (%U username substitution)
 # Ex: \\My-PDC-netbios-name\profiles\%U
 # Just set it to a null string if you want to use the smb.conf logon path
 # directive and/or disable roaming profiles
-userProfile="\\testDeb\profiles\%U"
+userProfile="\\NETBIOS_NAME\profiles\%U"
 
 # The default Home Drive Letter mapping
 # (will be automatically mapped at logon time if home directory exist)
@@ -785,6 +787,7 @@ smbpasswd="/usr/bin/smbpasswd"' >> /etc/smbldap-tools/smbldap.conf
 
 sed -i "s/LDAPSUFFIX/"$LDAPSUFFIX"/g" /etc/smbldap-tools/smbldap.conf
 sed -i "s/SMBDOMENE/"$SMBDOMENE"/g" /etc/smbldap-tools/smbldap.conf
+sed -i "s/NETBIOS_NAME/"$NETBIOS_NAME"/g" /etc/smbldap-tools/smbldap.conf
 
 
 # Restarter Samba
