@@ -249,7 +249,7 @@ if ( $INNHOLD ) ; then
         lesFil          #Leser filene med valg om den har innhold
 fi 
 
-echo "Filen som ble opprettet finner du her: $TMPFIL"
+echo "Filene som ble opprettet finner du her: $TMPFIL"
 
 
 
