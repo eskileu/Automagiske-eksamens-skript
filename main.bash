@@ -4,13 +4,14 @@
 # Skript for å samle de ulike installasjonene.
 # Tilbyr en dialog hvor brukere kan velge hva de vil kjøre
 #
-## Rev. 0.05 (1.0 er det samme som fult operativ)
+## Rev. 0.09 (1.0 er det samme som fult operativ)
 # -------------
 # 0.01 Startet på grunn strukturen.
 # 0.02 Lagt til gateway installasjonen
 # 0.03 Lagt til DNS og testet den alene
 # 0.04 Lagt til DHCP og testet den alene
 # 0.05 Lagt til EPOST, ikke testet ennå
+# 0.09 Lagt til BackupPC, SQUID og LAMP, men ingen testet.
 # -------------
 # Last edit: Fri 8 Apr 2011
 #
@@ -368,12 +369,265 @@ function instSAMDAP(){
 
 #----LAMP----#
 function instLAMP(){
- echo "DUMMY INPUT"
+##
+# Variablelkassen. Kom med innspill her på hvilke verdier som vi trenger.
+##
+
+# Konfig variabler
+NETT_I_CIDR="" # Denne MÅ vi ha
+MYSQLROOTPASS=""
+
+SPORSMAL="Angi LAN med CIDR notasjon (192.168.10.0/24) "
+getInput 1
+NETT_I_CIDR=$INPUT
+
+SPORSMAL="Skriv inn ønsket rootpassord for mysql: "
+getInput 1
+MYSQLROOTPASS=$INPUT
+
+
+#########
+# MYSQL #
+#########
+apt-get install -qy mysql-server
+
+##########
+# APACHE #
+##########
+apt-get install -qy apache2 apache2-mpm-prefork
+apt-get install -qy php5
+
+# Aktiver støtte for https sider. Better safe then sorry :)
+a2enmod ssl
+a2ensite default-ssl
+a2enmod userdir
+mkdir /etc/skel/public_html
+cd /etc/ssl/private
+make-ssl-cert generate-default-snakeoil
+
+##############
+# PHPMYADMIN #
+##############
+apt-get install -qy phpmyadmin
+
+# Vi vil tvinge folk over på https og det skal 
+# kun være mulig å nå den om man sitter internt
+a2enmod rewrite
+echo "
+Alias /pma /usr/share/phpmyadmin
+
+<Directory /usr/share/phpmyadmin>
+        Options Indexes FollowSymLinks
+        DirectoryIndex index.php
+        AllowOverride All
+        Order deny,allow
+
+        <IfModule mod_php5.c>
+                AddType application/x-httpd-php .php
+
+                php_flag magic_quotes_gpc Off
+                php_flag track_vars On
+                php_flag register_globals Off
+                php_value include_path .
+        </IfModule>
+
+        # Blokker alle eksterne tilkoblinger
+        Deny from all
+
+        # Aapne for lokale tilkoblinger
+        Allow from 127.0.0.1
+        Allow from ${NETT_I_CIDR}
+
+        # Tving alle tilkoblinger over paa https
+        RewriteEngine on
+        RewriteCond %{HTTPS} off
+        RewriteRule ^(.*)$ https://%{HTTP_HOST}/pma/ [R]
+</Directory>" > /etc/phpmyadmin/apache.conf
+
+################
+# PHPLDAPADMIN #
+################
+apt-get install -qy phpldapadmin
+
+echo "
+<IfModule mod_alias.c>
+    Alias /pla /usr/share/phpldapadmin/htdocs
+</IfModule>
+
+<Directory /usr/share/phpldapadmin/htdocs/>
+
+    DirectoryIndex index.php
+    Options +FollowSymLinks
+    AllowOverride All
+
+    Order deny,allow
+    Deny from all
+
+    # Aapne for lokale tilkoblinger
+    Allow from 127.0.0.1
+    Allow from ${NETT_I_CIDR}
+
+    <IfModule mod_mime.c>
+
+      <IfModule mod_php5.c>
+        AddType application/x-httpd-php .php
+
+        php_flag magic_quotes_gpc Off
+        php_flag track_vars On
+        php_flag register_globals On
+        php_value include_path .
+      </IfModule>
+
+      <IfModule !mod_php5.c>
+        <IfModule mod_actions.c>
+          <IfModule mod_cgi.c>
+            AddType application/x-httpd-php .php
+            Action application/x-httpd-php /cgi-bin/php5
+          </IfModule>
+          <IfModule mod_cgid.c>
+            AddType application/x-httpd-php .php
+            Action application/x-httpd-php /cgi-bin/php5
+           </IfModule>
+        </IfModule>
+      </IfModule>
+
+    </IfModule>
+    # Tving alle tilkoblinger over paa https
+    RewriteEngine on
+    RewriteCond %{HTTPS} off
+    RewriteRule ^(.*)$ https://%{HTTP_HOST}/pla/ [R]
+</Directory>" > /etc/phpldapadmin/apache.conf
+
+#############
+# WORDPRESS #
+#############
+cd /var/www ..
+wget http://wordpress.org/latest.tar.gz
+tar xvfz latest.tar.gz
+rm latest.tar.gz
+mv wordpress blog
+
+/etc/init.d/apache2 restart
+
+CREATEDB="CREATE DATABASE wordpress;"
+WPDBUSER="GRANT ALL PRIVILEGES ON wordpress.* TO wordpress@localhost IDENTIFIED BY 'asdfg1234N';"
+DBSKYLL="FLUSH PRIVILEGES;"
+
+mysql -u root --password=$MYSQLROOTPASS -e "$CREATEDB"
+mysql -u root --password=$MYSQLROOTPASS -e "$WPDBUSER"
+mysql -u root --password=$MYSQLROOTPASS -e "$DBSKYLL"
+
+echo "
+
+${REDTEMP}URL OVERSIKT${RESETTEMP}
+phpldapadmin ----->  https://FQDN/pla (kun internt)
+phpmyadmin   ----->  https://FQDN/pma (kun internt)
+
+Wordpress er lastet ned, men installasjonen er ikke fullført!
+wordpress    ----->  http://FQDN/blog/wp-admin/install.php
+				     Databasenavn ---> wordpress
+				     DBbruker     ---> wordpress
+				     DBpassord    ---> asdfg1234N
+				     hostvalg     ---> localhost
+				
+"
 } #Slutt LAMP
 
 #----SQUID----#
 function instSQUID(){
- echo "DUMMY INPUT"
+##
+# Variablelkassen. Kom med innspill her på hvilke verdier som vi trenger.
+##
+
+# Konfig variabler
+INTERNIP=""
+PORT=""
+NETTMASKE=""
+CIDR=""
+
+
+SPORSMAL="Hva er IP adressen skal squid benytte? "
+getInput 1
+INTERNIP=$INPUT
+
+SPORSMAL="Hvilken port vil du at squid skal bruke? "
+getInput 1
+PORT=$INPUT
+
+SPORSMAL="Hva er nettmasken som skal benyttes? "
+getInput 1
+NETTMASKE=$INPUT
+
+SPORSMAL="Skriv inn din nettadresse med CIDR notasjon (192.168.145.0/24): "
+getInput 1
+CIDR=$INPUT
+
+
+##
+# Installasjon av squid3
+##
+apt-get install -qy squid3
+
+mkdir /etc/squid3/acl
+cd /etc/squid3/acl
+touch denied_ads.acl denied_domains.acl denied_filetypes.acl
+
+##
+# Fyll acl filer med test innhold
+##
+echo '.vg.no
+.sex.com
+.hackers.com
+.xemacs.org
+.stormtroopers.no' > /etc/squid3/acl/denied_domains.acl
+
+echo '/adv/.*\.gif$
+/[Aa]ds/.*\.gif$
+/[Aa]d[Pp]ix/
+/[Aa]d[Ss]erver
+/[Aa][Dd]/.*\.[GgJj][IiPp][FfGg]$
+/[Bb]annerads/' > /etc/squid3/acl/denied_ads.acl
+
+echo '\.(exe)$
+\.(zip)$
+\.(mp3)$
+\.(avi)$' > /etc/squid3/acl/denied_filetypes.acl
+
+##
+# Konfigurasjon squid3
+##
+mv /etc/squid3/squid.conf /etc/squid3/squid.conf.old
+
+echo "http_port $INTERNIP:$PORT transparent
+client_netmask $NETTMASKE
+http_port $PORT transparent
+acl our_networks src $CIDR
+acl localnet src 127.0.0.1/255.255.255.255" > /etc/squid3/squid.conf
+
+echo '
+acl denied_domains dstdomain "/etc/squid3/acl/denied_domains.acl"
+acl filetypes urlpath_regex -i "/etc/squid3/acl/denied_filetypes.acl"
+acl url_ads url_regex "/etc/squid3/acl/denied_ads.acl"
+
+http_access deny denied_domains
+http_access deny filetypes
+http_access deny url_ads
+http_access allow our_networks
+http_access allow localnet
+cache_mem 100 MB
+cache_dir ufs /var/spool/squid3 300 16 256
+access_log /var/log/squid3/access.log squid
+coredump_dir /var/spool/squid3' >> /etc/squid3/squid.conf
+
+# Restart av squid3
+/etc/init.d/squid3 restart
+
+echo '
+Ferdig!!
+Du må fortsatt sette iptables regelen. (Eskil vi setter den i gateway scriptet, eller? :)) (OK, Jan Egil)
+Eksempel:
+iptables -t nat -A PREROUTING -i eth1 -p tcp --dport 80 -j REDIRECT --to ${INTERNIP}.${PORT}
+'
 } #Slutt SQUID
 
 #----EPOST----#
@@ -671,7 +925,36 @@ Ha en fortsatt fin dag :)
 
 #----BPC----#
 function instBPC(){
- echo "DUMMY INPUT"
+#############
+# ACTION!
+#############
+
+HTPASSWD=`echo "Skriv inn htpasswd for brukeren backuppc"`
+
+echo "Du trenger følgende informasjon klar:
+- Domenenavn"
+
+# installerer pakkene vi trenger
+apt-get install -qy backuppc rsync libfile-rsyncp-perl par2 smbfs
+
+echo "Lager et htpasswd for brukeren backupp"
+htpasswd /etc/backuppc/htpasswd backuppc
+
+echo "Lag passord for brukeren backuppc"
+passwd backuppc
+
+# Lager sertifikater
+echo "Vi logger inn med backuppc bruker. Skriv inn følgende etter at du får shell prompt:
+ssh-keygen -t rsa
+Deretter kan du exit det shellet og du er ferdig."
+
+su backuppc
+
+IPKLIENT=`Skriv inn ip-adressen til klienten:`
+scp /var/lib/backuppc/.ssh/id_rsa.pub $IPKLIENT:/root/.ssh/authorized_keys2
+
+exit
+
 } #Slutt BPC
 
 TMPFIL="/tmp/`date +%N`.tmp"
