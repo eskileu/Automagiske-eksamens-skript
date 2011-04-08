@@ -1,15 +1,17 @@
 #!/bin/bash
 
-
-# Skript for å samle de ulike installasjonene.
-# Tilbyr en dialog hvro brukere kan velge hva de vil kjøre
 #
-## Rev. 0.06 (1.0 er det samme som fult operativ)
+# Skript for å samle de ulike installasjonene.
+# Tilbyr en dialog hvor brukere kan velge hva de vil kjøre
+#
+## Rev. 0.04 (1.0 er det samme som fult operativ)
 # -------------
-# 0.05 Startet på grunn strukturen.
-# 0.06 Lagt til gateway installasjonen
+# 0.01 Startet på grunn strukturen.
+# 0.02 Lagt til gateway installasjonen
+# 0.03 Lagt til DNS og testet den
+# 0.04 Lagt til DHCP og testet den 
 # -------------
-# Last edit: Thur 7 Apr 2011
+# Last edit: Fri 8 Apr 2011
 #
 # TODO:
 # 1. Mate inn de ulike installasjonene
@@ -62,7 +64,7 @@ function getInput()
 
 		echo -n "< $SPORSMAL"
 		INPUT=""
-		read -t 60 INPUT <&1
+		read -t 120 INPUT <&1
 
 		# make a copy of the input in lower case
 		INPUT_LOWER_CASE=$(echo "$INPUT" | tr '[:upper:]' '[:lower:]')
@@ -105,59 +107,258 @@ function getInput()
 
 #----GATEWAY----#
 function instGateway(){
-        touch /etc/init.d/fw-script.sh
+touch /etc/init.d/fw-script.sh
 
-        chmod +x /etc/init.d/fw-script.sh
+chmod +x /etc/init.d/fw-script.sh
 
-        update-rc.d fw-script.sh defaults
+update-rc.d fw-script.sh defaults
 
-        echo '
-        #!/bin/sh
-         
-        PATH=/usr/sbin:/sbin:/bin:/usr/bin
-         
-        # Slette all regler
-        iptables -F
-        iptables -t nat -F
-        iptables -t mangle -F
-        iptables -X
-         
-        # Portforwarding
-        # iptables -t nat -A PREROUTING -i eth1 -p tcp --dport 80 -j REDIRECT --to-port SQUIDPORT
-        # iptables -A INPUT -p tcp -m state --state NEW --dport 80 -i eth0 -j ACCEPT
-         
-        # Pakkeforwarding
-        iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
-        iptables -A FORWARD -i eth1 -j ACCEPT
-        iptables -A FORWARD -i eth2 -j ACCEPT
-         
-        # Alltid akseptere loopback
-        iptables -A INPUT -i lo -j ACCEPT
-         
-        # Sørge for pakkeforwarding
-        echo "1" > /proc/sys/net/ipv4/ip_forward' >> /etc/init.d/fw-script.sh
+echo '
+#!/bin/sh
+ 
+PATH=/usr/sbin:/sbin:/bin:/usr/bin
+ 
+# Slette all regler
+iptables -F
+iptables -t nat -F
+iptables -t mangle -F
+iptables -X
+ 
+# Portforwarding
+# iptables -t nat -A PREROUTING -i eth1 -p tcp --dport 80 -j REDIRECT --to-port SQUIDPORT
+# iptables -A INPUT -p tcp -m state --state NEW --dport 80 -i eth0 -j ACCEPT
+ 
+# Pakkeforwarding
+iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
+iptables -A FORWARD -i eth1 -j ACCEPT
+iptables -A FORWARD -i eth2 -j ACCEPT
+ 
+# Alltid akseptere loopback
+iptables -A INPUT -i lo -j ACCEPT
+ 
+# Sørge for pakkeforwarding
+echo "1" > /proc/sys/net/ipv4/ip_forward' >> /etc/init.d/fw-script.sh
+
+/etc/init.d/fw-script.sh
+
+SPORSMAL="Skal du benytte squid? (1 for SQUID og 2 for ikke SQUID)"
+getInput 1
+if (( $INPUT_LOWER_CASE == 1)); then
+        SPORSMAL="Skriv inn portnummer på squid:"
+        getInput 1
+        if [ -z $INPUT_LOWER_CASE ]; then
+	        SQUIDPORT=3128
+        else
+	        SQUIDPORT=$INPUT_LOWER_CASE
+        fi
+
+        sed -i "s/SQUIDPORT/"$SQUIDPORT"/g" /etc/init.d/fw-script.sh
+        sed -i '13 s/^[#]\{1\}//g' /etc/init.d/fw-script.sh
 
         /etc/init.d/fw-script.sh
-
-        SPORSMAL="Skal du benytte squid? (1 for SQUID og 2 for ikke SQUID)"
-        getInput 1
-        if (( $INPUT_LOWER_CASE == 1)); then
-	        SPORSMAL="Skriv inn portnummer på squid:"
-	        getInput 1
-	        if [ -z $INPUT_LOWER_CASE ]; then
-		        SQUIDPORT=3128
-	        else
-		        SQUIDPORT=$INPUT_LOWER_CASE
-	        fi
-
-	        sed -i "s/SQUIDPORT/"$SQUIDPORT"/g" /etc/init.d/fw-script.sh
-	        sed -i '13 s/^[#]\{1\}//g' /etc/init.d/fw-script.sh
-
-	        /etc/init.d/fw-script.sh
-        else
-	        echo "Du har valgt å ikke implementere SQUID i brannmuren nå"
-        fi
+else
+        echo "Du har valgt å ikke implementere SQUID i brannmuren nå"
+fi
 } # Slutt gateway
+
+#----DNS----#
+function instDNS(){
+
+IP=`/sbin/ifconfig eth0 | grep 'inet addr:' | cut -d: -f2 | awk '{ print $1 }'`
+
+apt-get install -q -y bind9 bind9-doc resolvconf
+
+# Rekonfigurere /etc/bind/named.conf.local
+
+SPORSMAL="Skriv inn domenenavn:"
+getInput 1
+if [ -z $INPUT_LOWER_CASE ]; then
+        DOMAIN=`cat /etc/hosts | grep 127.0.1.1 | awk '{ print $2 }'`
+else
+        DOMAIN=$INPUT_LOWER_CASE
+fi
+
+SPORSMAL="Skriv inn ip-nettadresse (0.168.192):"
+getInput 1
+if [ -z $INPUT_LOWER_CASE ]; then
+        IPREV=`echo 1000000`
+else
+        IPREV=$INPUT_LOWER_CASE
+fi
+
+echo '
+zone "DOMAIN" {  
+        type master;
+        file "/etc/bind/db.DOMAIN";
+};
+zone "IPREV.in-addr.arpa" {
+        type master;
+        notify no;
+        file "/etc/bind/db.IPREV";
+};' >> /etc/bind/named.conf.local
+sed -i "s/DOMAIN/"$DOMAIN"/g" /etc/bind/named.conf.local
+sed -i "s/IPREV/"$IPREV"/g" /etc/bind/named.conf.local
+
+# Lager innslagsfilene for domenet vårt
+
+IP=`/sbin/ifconfig eth0 | grep 'inet addr:' | cut -d: -f2 | awk '{ print $1 }'`
+
+touch /etc/bind/db.$DOMAIN 
+touch /etc/bind/db.$IPREV
+
+
+echo '
+; BIND data fil for lokal loopback
+;
+
+$TTL    604800
+
+@       IN      SOA     ns.DOMAIN. root.DOMAIN. (
+                        1               ;Serial
+                        604800          ;Refresh
+                        86400           ;Retry
+                        2419200         ;Expire
+                        604800          ;Default TTL
+)
+
+@       IN      NS      ns.DOMAIN.
+ns      IN      A       IP
+box     IN      A       IP' >> /etc/bind/db.$DOMAIN
+
+sed -i "s/DOMAIN/"$DOMAIN"/g" /etc/bind/db.$DOMAIN
+sed -i "s/IP/"$IP"/g" /etc/bind/db.$DOMAIN
+
+echo '
+;
+; BIND reverse data fil for lokal loopback
+;
+$ORIGIN	DOMAIN.
+$TTL    604800
+@       IN      SOA     ns.DOMAIN. (
+                        2       ;Serienummer
+                        604800  ;Refresh
+                        86400   ;Retry
+                        2419200 ;Expire
+                        604800) ;Negative Cache TTL
+;
+@       IN      NS      ns.
+93      IN      PTR     ns.DOMAIN.' >> /etc/bind/db.$IPREV
+
+sed -i "s/DOMAIN/"$DOMAIN"/g" /etc/bind/db.$IPREV
+sed -i "s/IP/"$IP"/g" /etc/bind/db.$IPREV
+
+# Vi tester innstallasjonen
+
+named-checkzone $DOMAIN /etc/bind/db.$DOMAIN
+
+/etc/init.d/bind9 restart
+
+} # Slutt DNS
+
+
+#----DHCP----#
+function instDHCP(){
+apt-get install -q -y dhcp3-server
+
+rm /etc/dhcp3/dhcpd.conf
+touch /etc/dhcp3/dhcpd.conf
+
+echo '
+# DHCP konfigurasjon for lokalt nett
+
+ddns-update-style none;
+
+# setter en default for domene navn og navnetjener
+option domain-name "DOMAIN";
+option domain-name-servers DNSOTHER;
+
+# Lease tid
+default-lease-time 600;
+max-lease-time 7200;
+
+# Use this to send dhcp log messages to a different log file (you also
+# have to hack syslog.conf to complete the redirection).
+log-facility local7;
+
+subnet SUBNET netmask NETMASK {
+        range RANGE_START RANGE_STOP;
+        option routers ROUTER_IP;
+}' >> /etc/dhcp3/dhcpd.conf
+
+# Domenenavn
+SPORSMAL="Skriv inn domenenavn:"
+getInput 1
+if [ -z $INPUT_LOWER_CASE ]; then
+	DOMAIN=`cat /etc/hosts | grep 127.0.1.1 | awk '{ print $2 }'`
+else
+	DOMAIN=$INPUT_LOWER_CASE
+fi
+
+# DNS ip-adress
+# Her må det testes hvilken adresse vi kan bruke
+SPORSMAL="Skriv inn ip til autorativ dns-tjener, forutsetter at internt nett er på eth1:"
+getInput 1
+if [ -z $INPUT_LOWER_CASE ]; then
+	DNSOTHER=`/sbin/ifconfig eth1 | grep 'inet addr:' | cut -d: -f2 | awk '{ print $1 }'`
+else
+	DNSOTHER=$INPUT_LOWER_CASE
+fi
+
+# Her setter vi subnettet
+SPORSMAL="Skriv inn subnett:"
+getInput 1
+if [ -z $INPUT_LOWER_CASE ]; then
+	SUBNET=0.0.0.0
+else
+	SUBNET=$INPUT_LOWER_CASE
+fi
+
+# Her setter vi nettmaska
+SPORSMAL="Skriv inn nettmasken (ENTER: default 255.255.255.0):"
+getInput 1
+if [ -z $INPUT_LOWER_CASE ]; then
+	NETMASK=255.255.255.0
+else
+	NETMASK=$INPUT_LOWER_CASE
+fi
+
+# Her setter vi startip
+SPORSMAL="Skriv inn første ip:"
+getInput 1
+if [ -z $INPUT_LOWER_CASE ]; then
+	RANGE_START=0.0.0.0
+else
+	RANGE_START=$INPUT_LOWER_CASE
+fi
+
+# Her setter vi stoppip
+SPORSMAL="Skriv inn siste ip:"
+getInput 1
+if [ -z $INPUT_LOWER_CASE ]; then
+	RANGE_STOP=0.0.0.0
+else
+	RANGE_STOP=$INPUT_LOWER_CASE
+fi
+
+# Her setter vi ip-addressen til ruteren
+SPORSMAL="Skriv inn ruter ip:"
+getInput 1
+if [ -z $INPUT_LOWER_CASE ]; then
+	ROUTER_IP=0.0.0.0
+else
+	ROUTER_IP=$INPUT_LOWER_CASE
+fi
+
+sed -i "s/DOMAIN/"$DOMAIN"/g" /etc/dhcp3/dhcpd.conf
+sed -i "s/DNSOTHER/"$DNSOTHER"/g" /etc/dhcp3/dhcpd.conf
+sed -i "s/SUBNET/"$SUBNET"/g" /etc/dhcp3/dhcpd.conf
+sed -i "s/NETMASK/"$NETMASK"/g" /etc/dhcp3/dhcpd.conf
+sed -i "s/RANGE_START/"$RANGE_START"/g" /etc/dhcp3/dhcpd.conf
+sed -i "s/RANGE_STOP/"$RANGE_STOP"/g" /etc/dhcp3/dhcpd.conf
+sed -i "s/ROUTER_IP/"$ROUTER_IP"/g" /etc/dhcp3/dhcpd.conf
+
+/etc/init.d/dhcp3-server restart
+} # Slutt DHCP
 
 TMPFIL="/tmp/`date +%N`.tmp"
 touch $TMPFIL
@@ -206,12 +407,14 @@ sjekkFil(){
 lesFil(){
         while read line ; do
                 if [ "$line" == "GATE" ]; then
-                        echo "GATE valgt"
+                        #echo "GATE valgt"
                         instGateway
                 elif [ "$line" == "DNS" ]; then
-                        echo "DNS valgt"
+                        #echo "DNS valgt"
+                        instDNS
                 elif [ "$line" == "DHCP" ]; then
-                        echo "DHCP valgt"
+                        #echo "DHCP valgt"
+                        instDHCP
                 elif [ "$line" == "SAMDAP" ]; then
                         echo "SAMDAP valgt"
                 elif [ "$line" == "LAMP" ]; then
