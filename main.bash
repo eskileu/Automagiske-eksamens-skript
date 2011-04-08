@@ -4,12 +4,13 @@
 # Skript for å samle de ulike installasjonene.
 # Tilbyr en dialog hvor brukere kan velge hva de vil kjøre
 #
-## Rev. 0.04 (1.0 er det samme som fult operativ)
+## Rev. 0.05 (1.0 er det samme som fult operativ)
 # -------------
 # 0.01 Startet på grunn strukturen.
 # 0.02 Lagt til gateway installasjonen
-# 0.03 Lagt til DNS og testet den
-# 0.04 Lagt til DHCP og testet den 
+# 0.03 Lagt til DNS og testet den alene
+# 0.04 Lagt til DHCP og testet den alene
+# 0.05 Lagt til EPOST, ikke testet ennå
 # -------------
 # Last edit: Fri 8 Apr 2011
 #
@@ -359,6 +360,319 @@ sed -i "s/ROUTER_IP/"$ROUTER_IP"/g" /etc/dhcp3/dhcpd.conf
 
 /etc/init.d/dhcp3-server restart
 } # Slutt DHCP
+
+#----SAMDAP----#
+function instSAMDAP(){
+ echo "DUMMY INPUT"
+} #Slutt SAMDAP
+
+#----LAMP----#
+function instLAMP(){
+ echo "DUMMY INPUT"
+} #Slutt LAMP
+
+#----SQUID----#
+function instSQUID(){
+ echo "DUMMY INPUT"
+} #Slutt SQUID
+
+#----EPOST----#
+function instEPOST(){
+##
+# Variablelkassen. Kom med innspill her på hvilke verdier som vi trenger.
+##
+
+# Konfig variabler
+HOSTNAVN="" # Denne MÅ vi ha
+DOMENE=""   # Denne MÅ vi ha
+HOSTIP=""   # Denne MÅ vi ha
+EKSTERNT_INTERFACE="" # Om noen skulle bruke noe annet en eth0
+
+SPORSMAL="Hvilken hostname har serveren: "
+getInput 1
+if [ -z $INPUT_LOWER_CASE ]; then
+	HOSTNAVN=`hostname`
+else
+	HOSTNAVN=$INPUT_LOWER_CASE
+fi
+
+SPORSMAL="Hvilket domene skal serveren benytte: "
+getInput 1
+if [ -z $INPUT_LOWER_CASE ]; then
+	DOMENE=`hostname -d`
+else
+	DOMENE=$INPUT_LOWER_CASE
+fi
+
+SPORSMAL="Hvilket interface er det eksterne: "
+getInput 1
+if [ -z $INPUT_LOWER_CASE ]; then
+	EKSTERNT_INTERFACE="eth0"
+else
+	EKSTERNT_INTERFACE=$INPUT_LOWER_CASE
+fi
+
+SPORSMAL="Skriv inn serveren sin eksterne IP adresse:"
+getInput 1
+if [ -z $INPUT_LOWER_CASE ]; then
+	HOSTIP=`ifconfig $EKSTERNT_INTERFACE | grep 'inet addr:' | cut -d: -f2 | awk '{ print $1}'`
+else
+	HOSTIP=$INPUT_LOWER_CASE
+fi
+
+
+###################
+# POSTFIX OG SASL #
+###################
+echo " "
+echo "STARTER INSTALLASJON AV POSTFIX"
+echo " "
+apt-get update
+apt-get -qy install postfix sasl2-bin procmail libsasl2-modules
+
+postconf -e 'smtpd_sasl_local_domain ='
+postconf -e 'smtpd_sasl_auth_enable = yes'
+postconf -e 'smtpd_sasl_security_options = noanonymous'
+postconf -e 'broken_sasl_auth_clients = yes'
+postconf -e 'smtpd_sasl_authenticated_header = yes'
+postconf -e 'smtpd_recipient_restrictions = permit_sasl_authenticated,permit_mynetworks,reject_unauth_destination'
+postconf -e 'inet_interfaces = all'
+
+touch /etc/postfix/sasl/smtpd.conf
+echo 'pwcheck_method: saslauthd' >> /etc/postfix/sasl/smtpd.conf
+echo 'mech_list: plain login' >> /etc/postfix/sasl/smtpd.conf
+
+# Fiks av rettigheter mellom sasl og postfix
+rm -r /var/run/saslauthd/
+mkdir -p /var/spool/postfix/var/run/saslauthd
+ln -s /var/spool/postfix/var/run/saslauthd /var/run
+chgrp sasl /var/spool/postfix/var/run/saslauthd
+adduser postfix sasl
+
+# Opprette ssl nøkler til postfix
+mkdir /etc/postfix/ssl
+cd /etc/postfix/ssl/
+echo "${REDTEMP}OBS!${RESETTEMP} smtpd og pem passordene må har 4 tegn eller mer!!"
+openssl genrsa -des3 -rand /etc/hosts -out smtpd.key 1024
+chmod 600 smtpd.key
+openssl req -new -key smtpd.key -out smtpd.csr
+openssl x509 -req -days 3650 -in smtpd.csr -signkey smtpd.key -out smtpd.crt
+openssl rsa -in smtpd.key -out smtpd.key.unencrypted
+mv -f smtpd.key.unencrypted smtpd.key
+openssl req -new -x509 -extensions v3_ca -keyout cakey.pem -out cacert.pem -days 3650
+
+postconf -e "myhostname = $HOSTNAVN.$DOMENE"
+postconf -e 'smtpd_tls_auth_only = no'
+postconf -e 'smtp_use_tls = yes'
+postconf -e 'smtpd_use_tls = yes'
+postconf -e 'smtp_tls_note_starttls_offer = yes'
+postconf -e 'smtpd_tls_key_file = /etc/postfix/ssl/smtpd.key'
+postconf -e 'smtpd_tls_cert_file = /etc/postfix/ssl/smtpd.crt'
+postconf -e 'smtpd_tls_CAfile = /etc/postfix/ssl/cacert.pem'
+postconf -e 'smtpd_tls_loglevel = 1'
+postconf -e 'smtpd_tls_received_header = yes'
+postconf -e 'smtpd_tls_session_cache_timeout = 3600s'
+postconf -e 'tls_random_source = dev:/dev/urandom'
+
+mkdir -p /var/spool/postfix/var/run/saslauthd
+sed -i '/START=no/ c\START=yes' /etc/default/saslauthd
+sed -i 's|"-c -m /var/run/saslauthd"|"-c -m /var/spool/postfix/var/run/saslauthd"|g' /etc/default/saslauthd
+
+# Restart sasl og postfix
+/etc/init.d/postfix restart
+/etc/init.d/saslauthd restart
+
+### Legg inn varsling om telnet test og en mulighet til å avbryte om noe skulle være feil
+## tekstsnutt som forklarer telnet bruk og etter test en pause hvor vi git muligheten til å avbryte
+
+echo "
+STEG 1 FERDIG!
+Gjennomfør en telnet test for å sjekke at postfix er tilgjengelig.
+Ta en ${LIGHTCYANTEMP}ehlo localhost${RESETTEMP} i telnet. Se etter AUTH PLAIN
+og TLS.
+"
+telnet localhost 25
+pause "Om alt ser ut til å være korrekt trykk ENTER. Avbryt eventuelt med CTRL+C"
+
+###########
+# COURIER #
+###########
+echo "
+START COURIER INNSTALLASJON OG KONFIGURASJON
+"
+apt-get install -qy courier-authdaemon courier-base courier-imap courier-imap-ssl courier-pop courier-pop-ssl courier-ssl gamin libgamin0 libglib2.0-0
+
+###########
+# CLAMAV  #
+###########
+echo "
+START CLAMAV INNSTALLASJON OG KONFIGURASJON
+"
+apt-get install -qy clamav clamav-docs clamav-daemon clamav-freshclam
+apt-get install -qy arc arj bzip2 cabextract lzop nomarch p7zip pax tnef unrar-free unzip zoo ripole
+echo "deb http://ftp.no.debian.org/debian/ lenny non-free" >> /etc/apt/sources.list
+apt-get install -qy lha unrar
+apt-get install -qy clamav-testfiles
+clamscan /usr/share/clamav-testfiles
+clamdscan /usr/share/clamav-testfiles/
+apt-get remove -qy clamav-testfiles
+
+#################
+# SPAMASSASSIN  #
+#################
+echo "
+START SPAMASSASSIN INNSTALLASJON OG KONFIGURASJON
+"
+apt-get install -qy spamassassin spamc
+apt-get install -qy razor pyzor
+
+sed -i '/ENABLED=0/ c\ENABLED=1' /etc/default/spamassassin
+sed -i '/CRON=0/ c\CRON=1' /etc/default/spamassassin
+
+/etc/init.d/spamassassin restart
+
+###########
+# AMAVIS  #
+###########
+apt-get install -qy amavisd-new
+echo '
+##
+# Amavis (A mail virus scanner)
+##
+content_filter = amavis:[127.0.0.1]:10024
+receive_override_options = no_address_mappings' >> /etc/postfix/main.cf
+
+echo '
+#
+# amavisd-new scanner
+#
+amavis unix - - - - 2 smtp
+        -o smtp_data_done_timeout=1200
+        -o smtp_send_xforward_command=yes
+        -o disable_dns_lookups=yes
+        -o max_use=20
+        -o smtp_generic_maps=
+
+127.0.0.1:10025 inet n - - - - smtpd
+        -o content_filter=
+        -o smtpd_delay_reject=no
+        -o smtpd_client_restrictions=permit_mynetworks,reject
+        -o smtpd_helo_restrictions=
+        -o smtpd_sender_restrictions=
+        -o smtpd_recipient_restrictions=permit_mynetworks,reject
+        -o smtpd_end_of_data_restrictions=
+        -o smtpd_restriction_classes=
+        -o mynetworks=127.0.0.0/8
+        -o smtpd_error_sleep_time=0
+        -o smtpd_soft_error_limit=1001
+        -o smtpd_hard_error_limit=1000
+        -o smtpd_client_connection_count_limit=0
+        -o smtpd_client_connection_rate_limit=0
+        -o receive_override_options=no_header_body_checks,no_unknown_recipient_checks
+        -o local_header_rewrite_clients=
+        -o local_recipient_maps=
+        -o relay_recipient_maps=
+        -o strict_rfc821_envelopes=yes' >> /etc/postfix/master.cf
+
+/etc/init.d/postfix restart
+		
+
+######################################
+# CLAMAV OG SPAMASSASSIN INTEGRASJON #
+######################################
+adduser clamav amavis
+adduser amavis clamav
+
+echo '
+use strict;
+@bypass_virus_checks_maps = (
+   \%bypass_virus_checks, \@bypass_virus_checks_acl, \$bypass_virus_checks_re);
+
+@bypass_spam_checks_maps = (
+   \%bypass_spam_checks, \@bypass_spam_checks_acl, \$bypass_spam_checks_re);
+
+1;  # ensure a defined return' > /etc/amavis/conf.d/15-content_filter_mode
+
+echo -e '
+use strict;
+$sa_spam_subject_tag = \047***SPAM***\047;
+$sa_tag_level_deflt  = undef;  # add spam info headers if at, or above that level
+$sa_tag2_level_deflt = 7;      # add spam detected headers at that level
+$sa_kill_level_deflt = 30;     # triggers spam evasive actions
+
+#------------ Do not modify anything below this line -------------
+1;  # ensure a defined return' > /etc/amavis/conf.d/50-user
+
+/etc/init.d/amavis restart
+
+
+##############################
+# POSTGREY OG POLICYD-WEIGHT #
+##############################
+apt-get install -qy postgrey policyd-weight
+postconf -e 'smtpd_recipient_restrictions = permit_sasl_authenticated,permit_mynetworks,reject_unauth_destination,reject_non_fqdn_recipient,check_policy_service inet:127.0.0.1:60000,check_policy_service inet:127.0.0.1:12525'
+
+
+########################
+# BRUKER KONFIGURASJON #
+########################
+maildirmake /etc/skel/Maildir
+maildirmake -f spam /etc/skel/Maildir
+
+mkdir /etc/skel/.procmail
+touch /etc/skel/.procmailrc /etc/skel/.procmail/log
+echo '
+PATH=/bin:/usr/bin:/local/bin
+MAILDIR=$HOME
+LOCKMAIL=$HOME/.lockfile
+DEFAULT=$HOME/Mailbox
+PMDIR=$HOME/.procmail
+LOGFILE=$PMDIR/log
+MAILFOLDER=$HOME/Maildir/
+
+# Sender spam med 2-sifrede hits til spam mappen
+:0:
+* ^X-Spam-Status:.Yes, score=[0-9][0-9]
+$MAILFOLDER/.spam/
+
+# Resten til spam-mappe
+:0:
+* ^X-Spam-Status:.Yes,.*
+$MAILFOLDER/.spam/
+
+# Ufiltrert epost til Inbox
+:0
+$MAILFOLDER/' > /etc/skel/.procmailrc
+
+mkdir -m 700 /etc/skel/.spamassassin
+
+
+########################
+# RESTART AV TJENESTER #
+########################
+/etc/init.d/postfix restart
+/etc/init.d/amavis restart
+/etc/init.d/clamav-daemon restart
+/etc/init.d/courier-authdaemon restart
+/etc/init.d/courier-imap restart
+/etc/init.d/courier-pop restart
+/etc/init.d/courier-imap-ssl restart
+/etc/init.d/courier-pop-ssl restart
+/etc/init.d/postgrey restart
+/etc/init.d/spamassassin restart
+
+echo "
+
+FERDIG!
+Ha en fortsatt fin dag :)
+
+"
+} #Slutt EPOST
+
+#----BPC----#
+function instBPC(){
+ echo "DUMMY INPUT"
+} #Slutt BPC
 
 TMPFIL="/tmp/`date +%N`.tmp"
 touch $TMPFIL
