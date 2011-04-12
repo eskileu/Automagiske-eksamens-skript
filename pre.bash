@@ -31,7 +31,7 @@ else
 fi
 
 apt-get update
-apt-get install -qy openssh-server sudo htop screen openssl quota quotatool acl vim 
+apt-get install -qy openssh-server sudo htop screen openssl quota quotatool acl dialog
 echo "Husk å slå av muligheten til å logge inn som root etter at
 sudo er konfigurert ---> /etc/ssh/sshd_config"
 
