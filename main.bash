@@ -183,7 +183,10 @@ fi
 SPORSMAL="Skriv inn ip-nettadresse (0.168.192):"
 getInput 1
 if [ -z $INPUT_LOWER_CASE ]; then
-        IPREV=`echo 1000000`
+        IP_1=`echo $IP | cut -d. -f3`
+	IP_2=`echo $IP | cut -d. -f2`
+	IP_3=`echo $IP | cut -d. -f1`
+	IPREV=$IP_1.$IP_2.$IP_3
 else
         IPREV=$INPUT_LOWER_CASE
 fi
