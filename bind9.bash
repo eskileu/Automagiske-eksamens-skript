@@ -3,7 +3,7 @@
 #
 # Installasjonsscript for bind9
 #
-## Rev. 0.2beta (1.0 er det samme som fult operativ)
+## Rev. 0.3 (1.0 er det samme som fult operativ)
 # -------------
 # 0.1 Skjelettet opprettet. Ingen ting lagt til ennå. 
 # Lagt til sjekk om det er nett på maskinen. Ingen grunn til å kjøre i gang
@@ -11,15 +11,17 @@
 # Må få oversikt over nødvendige variabler til konfigurasjonen.
 # 0.2 Scriptet er i beta versjon, dvs at det fungerer, men ikke
 # testet av andre en dlill
+# 0.3 fiksa på et duplikat innslag på en variabel, og lagt til at scriptet
+#  selv finner reverse ip til subnettet
 # -------------
-# Last edit: Sat 26 Mar 2011
+# Last edit: Tue 11 Apr 2011
 #
 # TODO:
 # 1. Testing av andre
 ##
 
 ###############
-# Functions             
+# Function
 ###############
 
 # Rydde funksjon. Kun et skjelett må fylles
@@ -139,11 +141,15 @@ fi
 SPORSMAL="Skriv inn ip-nettadresse (0.168.192):"
 getInput 1
 if [ -z $INPUT_LOWER_CASE ]; then
-	IPREV=`echo 1000000`
+	IP_1=`echo $IP | cut -d. -f3`
+	IP_2=`echo $IP | cut -d. -f2`
+	IP_3=`echo $IP | cut -d. -f1`
+	IPREV=$IP_1.$IP_2.$IP_3
 else
 	IPREV=$INPUT_LOWER_CASE
 fi
 
+# Oppretter filen /etc/bind/named.conf.local
 echo '
 zone "DOMAIN" {  
         type master;
@@ -154,21 +160,22 @@ zone "IPREV.in-addr.arpa" {
         notify no;
         file "/etc/bind/db.IPREV";
 };' >> /etc/bind/named.conf.local
+
+# Fikser på innslagene i filen med våre verdier på variablene
 sed -i "s/DOMAIN/"$DOMAIN"/g" /etc/bind/named.conf.local
 sed -i "s/IPREV/"$IPREV"/g" /etc/bind/named.conf.local
 
+
 # Lager innslagsfilene for domenet vårt
-
-IP=`/sbin/ifconfig eth0 | grep 'inet addr:' | cut -d: -f2 | awk '{ print $1 }'`
-
+# Oppretter først filene på rett sted
 touch /etc/bind/db.$DOMAIN 
 touch /etc/bind/db.$IPREV
 
-
+# Legger til våre innslage i filen /etc/bind/db.$DOMAIN
 echo '
 ; BIND data fil for lokal loopback
 ;
-
+@ORIGIN DOMAN.
 $TTL    604800
 
 @       IN      SOA     ns.DOMAIN. root.DOMAIN. (
@@ -183,9 +190,11 @@ $TTL    604800
 ns      IN      A       IP
 box     IN      A       IP' >> /etc/bind/db.$DOMAIN
 
+# Legger inn variablene brukeren har gitt oss
 sed -i "s/DOMAIN/"$DOMAIN"/g" /etc/bind/db.$DOMAIN
 sed -i "s/IP/"$IP"/g" /etc/bind/db.$DOMAIN
 
+# Populerer filen /etc/bind/db.$IPREV
 echo '
 ;
 ; BIND reverse data fil for lokal loopback
@@ -202,12 +211,14 @@ $TTL    604800
 @       IN      NS      ns.
 93      IN      PTR     ns.DOMAIN.' >> /etc/bind/db.$IPREV
 
+# Legger inn variablene brukeren har gitt oss
 sed -i "s/DOMAIN/"$DOMAIN"/g" /etc/bind/db.$IPREV
 sed -i "s/IP/"$IP"/g" /etc/bind/db.$IPREV
 
-# Vi tester innstallasjonen
 
+# Vi tester innstallasjonen
 named-checkzone $DOMAIN /etc/bind/db.$DOMAIN
 
+# Restarter tjenesten
 /etc/init.d/bind9 restart
 

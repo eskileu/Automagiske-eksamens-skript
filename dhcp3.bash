@@ -14,7 +14,7 @@
 # Last edit: Sat 26 Mar 2011
 #
 # TODO:
-# 
+# 1. Binde tjenesten til et spesifikt interface
 ##
 
 ###############
