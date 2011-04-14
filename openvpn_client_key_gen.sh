@@ -284,5 +284,8 @@ verb 3
 # Silence repeating messages
 ;mute 20" >> /home/$BRUKER/.openvpn/client.conf
 
+# Sette rettighetene til brukeren på filene vi har laget
+chown $BRUKER:`id -gn $BRUKER` /home/$BRUKER/.openvpn/*
+
 echo "Alle filer ligger i brukerens hjemmekatalog i mappen .openvpn"
 
