@@ -6,8 +6,6 @@
 # skript til eksamen. Skilt ut for at de
 # ikke skal kludre til master branch. Merges inn
 # i master når ting er testet godt nok
-# -------------
-# 
 ##
 
 

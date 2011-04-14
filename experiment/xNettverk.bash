@@ -1,6 +1,6 @@
 #!/bin/bash 
 . xVariabler.bash
-. xMake2CIDR.bash
+. xMask2CIDR.bash
 . xColor.bash
 
 ## 
@@ -10,14 +10,6 @@
 # ikke skal kludre til master branch. Merges inn
 # i master når ting er testet godt nok
 ##
-
-
-# ---------
-# VARIABLER
-# ---------
-# Hardkodingen vil da sørge for at variabler 
-# ikke fylles inn med data fra feks ifconfig
-#
 
 echo -n 'Hvilket interface er ditt eksterne| WAN (eth0,eth1,wlan0...): '
 read WAN_IFACE
@@ -44,7 +36,7 @@ if [ -z $WAN_MASKE ]; then
 fi
 
 if [ -z $WAN_CIDR ]; then
-    ANTBIT="/"$(mask2cidr $WAN_MASKE) # mas2cidr --> xFunksjoner.bash
+    ANTBIT="/"$(mask2cidr $WAN_MASKE) # mask2cidr --> xMask2CIDR.bash
     WAN_CIDR=$W_IP1"."$W_IP2"."$W_IP3".0"$ANTBIT
 fi
 
