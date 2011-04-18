@@ -681,9 +681,9 @@ fi
 ###################
 # POSTFIX OG SASL #
 ###################
-echo " "
-echo "STARTER INSTALLASJON AV POSTFIX"
-echo " "
+echo "
+STARTER INSTALLASJON AV POSTFIX
+"
 apt-get update
 apt-get -qy install postfix sasl2-bin procmail libsasl2-modules
 
@@ -745,7 +745,7 @@ sed -i 's|"-c -m /var/run/saslauthd"|"-c -m /var/spool/postfix/var/run/saslauthd
 echo "
 STEG 1 FERDIG!
 Gjennomfør en telnet test for å sjekke at postfix er tilgjengelig.
-Ta en ${LIGHTCYANTEMP}ehlo localhost${RESETTEMP} i telnet. Se etter AUTH PLAIN
+Ta en ${LIGHTCYANTEMP} ehlo localhost ${RESETTEMP} i telnet. Se etter AUTH PLAIN
 og TLS.
 "
 telnet localhost 25
@@ -1005,28 +1005,32 @@ sjekkFil(){
 # Avdekker på denne måten brukervalgene
 
 lesFil(){
-        while read line ; do
-                if [ "$line" == "GATE" ]; then
-                        #echo "GATE valgt"
-                        instGateway
-                elif [ "$line" == "DNS" ]; then
-                        #echo "DNS valgt"
-                        instDNS
-                elif [ "$line" == "DHCP" ]; then
-                        #echo "DHCP valgt"
-                        instDHCP
-                elif [ "$line" == "SAMDAP" ]; then
-                        echo "SAMDAP valgt"
-                elif [ "$line" == "LAMP" ]; then
-                        echo "LAMP valgt"
-                elif [ "$line" == "SQUID" ]; then
-                        echo "SQUID valgt"
-                elif [ "$line" == "EPOST" ]; then
-                        echo "EPOST valgt"
-                elif [ "$line" == "BPC" ]; then
-                        echo "BPC valgt"
-                fi
-        done < $TMPFIL
+while read line ; do
+        if [ "$line" == "GATE" ]; then
+                #echo "GATE valgt"
+                instGateway
+        elif [ "$line" == "DNS" ]; then
+                #echo "DNS valgt"
+                instDNS
+        elif [ "$line" == "DHCP" ]; then
+                #echo "DHCP valgt"
+                instDHCP
+        elif [ "$line" == "SAMDAP" ]; then
+                echo "SAMDAP valgt"
+        elif [ "$line" == "LAMP" ]; then
+                #echo "LAMP valgt"
+                instLAMP
+        elif [ "$line" == "SQUID" ]; then
+                #echo "SQUID valgt"
+                instSQUID
+        elif [ "$line" == "EPOST" ]; then
+                #echo "EPOST valgt"
+                instEPOST
+        elif [ "$line" == "BPC" ]; then
+                #echo "BPC valgt"
+                instBPC
+        fi
+done < $TMPFIL
 }
 
 rydd(){
