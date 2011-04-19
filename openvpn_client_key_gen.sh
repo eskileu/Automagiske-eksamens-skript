@@ -155,6 +155,7 @@ source /etc/openvpn/easy-rsa/vars
 /etc/openvpn/easy-rsa/pkitool $KLIENT
 
 cp /etc/openvpn/easy-rsa/keys/$KLIENT* /home/$BRUKER/.openvpn
+cp /etc/openvpn/easy-rsa/keys/ca.crt /home/$BRUKER/.openvpn
 
 # Oppretter klient config fil
 touch /home/$BRUKER/.openvpn/client.conf
