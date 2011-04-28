@@ -155,6 +155,7 @@ source /etc/openvpn/easy-rsa/vars
 /etc/openvpn/easy-rsa/pkitool $KLIENT
 
 cp /etc/openvpn/easy-rsa/keys/$KLIENT* /home/$BRUKER/.openvpn
+cp /etc/openvpn/easy-rsa/keys/ca.crt /home/$BRUKER/.openvpn
 
 # Oppretter klient config fil
 touch /home/$BRUKER/.openvpn/client.conf
@@ -286,6 +287,8 @@ verb 3
 
 # Sette rettighetene til brukeren på filene vi har laget
 chown $BRUKER:`id -gn $BRUKER` /home/$BRUKER/.openvpn/*
+
+chmod 600 /home/$BRUKER/.openvpn/$BRUKER.key
 
 echo "Alle filer ligger i brukerens hjemmekatalog i mappen .openvpn"
 
