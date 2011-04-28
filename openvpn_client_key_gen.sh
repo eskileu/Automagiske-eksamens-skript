@@ -288,5 +288,7 @@ verb 3
 # Sette rettighetene til brukeren på filene vi har laget
 chown $BRUKER:`id -gn $BRUKER` /home/$BRUKER/.openvpn/*
 
+chmod 600 /home/$BRUKER/.openvpn/$BRUKER.key
+
 echo "Alle filer ligger i brukerens hjemmekatalog i mappen .openvpn"
 
