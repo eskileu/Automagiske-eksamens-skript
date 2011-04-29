@@ -1,6 +1,6 @@
 #!/bin/bash 
 . xVariabler.bash
-. xMask2CIDR.bash
+. xMake2CIDR.bash
 . xColor.bash
 
 ## 
